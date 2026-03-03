@@ -1,0 +1,275 @@
+:root {
+    --primary: #1e3a8a;
+    --secondary: #64748b;
+    --accent: #3b82f6;
+    --bg: #f1f5f9;
+    --white: #ffffff;
+    --danger: #ef4444;
+    --success: #10b981;
+    --border: #e2e8f0;
+}
+
+* { box-sizing: border-box; }
+
+body {
+    background: var(--bg);
+    font-family: 'Segoe UI', system-ui, sans-serif;
+    color: #1e293b;
+    margin: 0;
+    overflow: hidden; /* Evita doble scroll */
+}
+
+.text-accent { color: var(--accent); }
+.font-bold { font-weight: bold; }
+.text-right { text-align: right; padding-right: 15px !important; }
+.hidden { display: none !important; }
+
+/* Estructura Principal */
+.main-wrapper { display: flex; height: 100vh; }
+
+/* Menú Lateral */
+.sidebar {
+    width: 260px;
+    background: #0f172a;
+    color: white;
+    display: flex;
+    flex-direction: column;
+}
+.sidebar-header { padding: 2rem 1rem; text-align: center; border-bottom: 1px solid #1e293b; }
+.logo-container {
+    background: var(--accent);
+    width: 45px; height: 45px;
+    border-radius: 10px;
+    margin: 0 auto 10px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 1.5rem;
+}
+.logo-text { font-weight: 700; font-size: 1.1rem; }
+.logo-text small { color: #94a3b8; font-size: 0.8rem; font-weight: normal; }
+
+.nav-tabs { list-style: none; padding: 0; margin: 1rem 0; flex: 1; }
+.nav-item {
+    padding: 1rem 1.5rem;
+    display: flex; align-items: center; gap: 1rem;
+    cursor: pointer; transition: 0.3s; color: #cbd5e1;
+}
+.nav-item:hover { background: #1e293b; color: white; }
+.nav-item.active { background: #1e293b; color: white; border-left: 4px solid var(--accent); }
+.sidebar-footer { padding: 1rem; text-align: center; font-size: 0.8rem; color: #64748b; }
+
+/* Contenido Principal */
+.content-container { 
+    flex: 1; 
+    display: flex;
+    flex-direction: column;
+    overflow-y: auto; 
+    position: relative;
+}
+
+.main-header {
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 2rem 2rem 1rem 2rem;
+}
+.header-title-area h1 { margin: 0; font-size: 1.5rem; color: #0f172a; }
+.header-title-area p { margin: 5px 0 0; color: var(--secondary); font-size: 0.9rem; }
+
+.global-selectors {
+    display: flex; gap: 15px; background: white;
+    padding: 10px 15px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+    border: 1px solid var(--border);
+}
+.selector-group { display: flex; align-items: center; gap: 10px; color: var(--secondary); }
+
+/* Tarjetas (Cards) */
+.tab-content { padding: 0 2rem; padding-bottom: 100px; /* Espacio para el footer fijo */ }
+.dashboard-grid { display: grid; grid-template-columns: 1.6fr 1fr; gap: 1.5rem; margin-bottom: 2rem;}
+
+.card {
+    background: white; border-radius: 10px; 
+    box-shadow: 0 2px 8px rgba(0,0,0,0.04); 
+    border: 1px solid var(--border);
+    margin-bottom: 1.5rem;
+    overflow: hidden;
+}
+.card-header {
+    padding: 1.2rem; border-bottom: 1px solid var(--border);
+    background: #f8fafc;
+}
+.card-header h2 { font-size: 1.05rem; margin: 0; font-weight: 600; color: #1e293b; }
+.flex-between { display: flex; justify-content: space-between; align-items: center; }
+.card-body { padding: 1.5rem; }
+
+/* Formularios */
+.grid-form { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
+.form-group { display: flex; flex-direction: column; gap: 5px; }
+.form-group label { font-size: 0.85rem; font-weight: 600; color: var(--secondary); }
+.full-width { grid-column: 1 / -1; }
+
+.modern-input, .modern-select, .table-input, .table-select {
+    width: 100%; border: 1px solid var(--border); 
+    padding: 0.6rem; border-radius: 6px;
+    font-family: inherit; font-size: 0.9rem;
+    transition: border-color 0.2s;
+}
+.modern-input:focus, .modern-select:focus, .table-input:focus, .table-select:focus {
+    outline: none; border-color: var(--accent);
+}
+
+/* Tablas */
+.table-responsive { overflow-x: auto; }
+.modern-table { width: 100%; border-collapse: collapse; }
+.modern-table th { 
+    background: #f8fafc; padding: 12px 10px; text-align: left; 
+    font-size: 0.75rem; color: var(--secondary); text-transform: uppercase; 
+    border-bottom: 2px solid var(--border);
+}
+.modern-table td { padding: 8px 10px; border-bottom: 1px solid var(--border); vertical-align: middle; }
+.modern-table tbody tr:hover { background: #f8fafc; }
+.total-row td { background: #f1f5f9; padding: 15px 10px; font-size: 1.1rem; border-top: 2px solid var(--border); }
+
+/* Botones */
+.btn-add {
+    background: #e0f2fe; color: var(--accent); border: 1px solid #bae6fd;
+    padding: 6px 12px; border-radius: 6px; cursor: pointer;
+    font-weight: 600; font-size: 0.85rem; transition: 0.2s;
+}
+.btn-add:hover { background: #bae6fd; }
+
+.btn-del {
+    background: #fee2e2; color: var(--danger); border: none;
+    width: 28px; height: 28px; border-radius: 5px; cursor: pointer;
+    display: grid; place-items: center; transition: 0.2s;
+}
+.btn-del:hover { background: #fca5a5; }
+
+/* Resumen Visual */
+.summary-item { margin-bottom: 1.2rem; }
+.summary-info { display: flex; justify-content: space-between; margin-bottom: 0.4rem; font-size: 0.9rem; font-weight: 500;}
+.summary-bar-container { height: 8px; background: var(--border); border-radius: 4px; position: relative; overflow: hidden; }
+.bar-c { height: 100%; background: #3b82f640; position: absolute; }
+.bar-f { height: 100%; background: var(--success); position: absolute; }
+.has-diff { color: var(--danger) !important; font-weight: bold; }
+
+/* Footer Fijo con Botones */
+.sticky-actions {
+    position: fixed; bottom: 0; right: 0; width: calc(100% - 260px); /* Resta el sidebar */
+    background: rgba(255, 255, 255, 0.95); backdrop-filter: blur(5px);
+    padding: 15px 2rem; border-top: 1px solid var(--border);
+    box-shadow: 0 -4px 10px rgba(0,0,0,0.03);
+    z-index: 10;
+}
+
+.action-buttons-container {
+    display: flex; justify-content: flex-end; gap: 15px;
+}
+
+.btn {
+    border: none; padding: 12px 24px; border-radius: 6px;
+    font-size: 0.95rem; font-weight: bold; color: white;
+    cursor: pointer; display: flex; align-items: center; gap: 8px;
+    transition: transform 0.1s, background-color 0.2s;
+}
+.btn:active { transform: scale(0.98); }
+
+.btn-azul { background-color: var(--primary); }
+.btn-azul:hover { background-color: #172a6b; }
+
+.btn-rojo { background-color: var(--danger); }
+.btn-rojo:hover { background-color: #b91c1c; }
+
+/* AGREGA ESTO AL FINAL DE TU CSS */
+.btn-verde { background-color: var(--success); }
+.btn-verde:hover { background-color: #059669; }
+
+/* =========================================
+   ESTILOS PARA EL MODAL DE DETALLES Y BOTÓN
+   ========================================= */
+.btn-view {
+    background: #e0e7ff; color: #4338ca; border: 1px solid #c7d2fe;
+    padding: 6px 12px; border-radius: 6px; cursor: pointer;
+    font-size: 0.85rem; font-weight: 600; transition: 0.2s;
+    display: flex; align-items: center; gap: 5px;
+}
+.btn-view:hover { background: #c7d2fe; }
+
+.modal {
+    position: fixed; z-index: 1000; left: 0; top: 0;
+    width: 100%; height: 100%; overflow: auto;
+    background-color: rgba(15, 23, 42, 0.6); backdrop-filter: blur(3px);
+    display: flex; align-items: center; justify-content: center;
+}
+.modal-content {
+    background-color: #ffffff; border-radius: 10px; width: 90%; max-width: 800px;
+    box-shadow: 0 10px 25px rgba(0,0,0,0.15); border: 1px solid var(--border);
+    max-height: 90vh; display: flex; flex-direction: column;
+}
+.modal-header { 
+    display: flex; justify-content: space-between; align-items: center; 
+    padding: 1.5rem; border-bottom: 1px solid var(--border); background: #f8fafc;
+    border-radius: 10px 10px 0 0;
+}
+.modal-header h2 { margin: 0; font-size: 1.2rem; color: #1e293b; }
+.close-modal { color: #94a3b8; font-size: 1.5rem; cursor: pointer; transition: 0.2s; }
+.close-modal:hover { color: var(--danger); }
+.modal-body { padding: 1.5rem; overflow-y: auto; }
+.modal-grid-info {
+    display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px;
+    background: #f1f5f9; padding: 15px; border-radius: 8px; margin-bottom: 20px;
+}
+.modal-grid-info div span { display: block; font-size: 0.8rem; color: var(--secondary); text-transform: uppercase; font-weight: bold; }
+.modal-grid-info div strong { font-size: 1rem; color: #1e293b; }
+
+/* Estilos para el campo de Correlativo Fijo */
+.input-group {
+    display: flex;
+    align-items: stretch;
+}
+.input-prefix {
+    background: #e2e8f0;
+    padding: 0.6rem 0.8rem;
+    border: 1px solid var(--border);
+    border-right: none;
+    border-radius: 6px 0 0 6px;
+    font-weight: bold;
+    color: var(--primary);
+    display: flex;
+    align-items: center;
+    white-space: nowrap;
+}
+.input-group .modern-input {
+    border-radius: 0 6px 6px 0;
+}
+
+/* Altura mínima dinámica para la gráfica de Chart.js */
+.chart-card .card-body {
+    position: relative;
+    min-height: 320px; 
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+}
+#resumenGrafico {
+    flex-grow: 1;
+}
+
+/* Botón secundario sin fondo pesado */
+.btn-outline {
+    background-color: white;
+    color: var(--secondary);
+    border: 1px solid var(--secondary);
+}
+.btn-outline:hover {
+    background-color: #f8fafc;
+    color: var(--primary);
+    border-color: var(--primary);
+}
+
+/* Ajuste al botón rojo para que sea menos "agresivo" en descargas */
+.btn-rojo-suave {
+    background-color: white;
+    color: var(--danger);
+    border: 1px solid #fca5a5;
+}
+.btn-rojo-suave:hover {
+    background-color: #fef2f2;
+}

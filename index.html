@@ -1,0 +1,280 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Estuconta - Cierre Diario</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<div class="main-wrapper">
+    <nav class="sidebar">
+        <div class="sidebar-header">
+            <img src="descarga.png" alt="GrupoDent" style="max-width: 90%; height: auto; margin: 0 auto; display: block; border-radius: 8px;">
+        </div>
+        <ul class="nav-tabs">
+            <li class="nav-item active" data-tab="tab-captura">
+                <i class="fas fa-file-invoice-dollar"></i> <span>Cierre Diario</span>
+            </li>
+            <li class="nav-item" data-tab="tab-database">
+                <i class="fas fa-server"></i> <span>Historial / DB</span>
+            </li>
+        </ul>
+        <div class="sidebar-footer">
+            <p>&copy; 2026 - Gestión Interna</p>
+        </div>
+    </nav>
+
+    <main class="content-container">
+        <header class="main-header">
+            <div class="header-title-area">
+                <h1>Panel de Cierres Diarios</h1>
+                <p>Gestión de flujo de caja y conciliación de terminales</p>
+            </div>
+            <div class="global-selectors">
+                <div class="selector-group">
+                    <label><i class="fas fa-store"></i></label>
+                    <select id="sucursalSelect" class="modern-select">
+                        <option value="1">CHIQUIMULA</option>
+                        <option value="2">SAN NICOLAS 1</option>
+                        <option value="3">SIXTINO</option>
+                        <option value="4">FRUTAL</option>
+                        <option value="5">METRONORTE</option>
+                        <option value="6">NARANJO</option>
+                        <option value="7">SAN NICOLAS 2</option>
+                        <option value="8">PERI ROOSEVELT</option>
+                    </select>
+                </div>
+                <div class="selector-group">
+                    <label><i class="fas fa-calendar-day"></i></label>
+                    <input type="date" id="fechaInput" class="modern-input">
+                </div>
+            </div>
+        </header>
+
+        <div id="tab-captura" class="tab-content active">
+            <div class="dashboard-grid">
+                <div class="forms-column">
+                    <section class="card">
+                        <div class="card-header">
+                            <h2><i class="fas fa-clipboard-list text-accent"></i> Encabezado de Control</h2>
+                        </div>
+                        <div class="card-body grid-form">
+                            <div class="form-group">
+                                <label>Usuario / Turno:</label>
+                                <select id="turnoSelect" class="modern-select"></select>
+                            </div>
+                            <div class="form-group">
+                                <label>Fecha Recibido:</label>
+                                <input type="date" id="fechaRecibido" class="modern-input">
+                            </div>
+                            <div class="form-group">
+    <label>Recibo Inicio:</label>
+    <div class="input-group">
+        <span id="prefixInicio" class="input-prefix"></span>
+        <input type="number" id="reciboInicioNum" class="modern-input" placeholder="001" min="1">
+    </div>
+</div>
+<div class="form-group">
+    <label>Recibo Final:</label>
+    <div class="input-group">
+        <span id="prefixFinal" class="input-prefix"></span>
+        <input type="number" id="reciboFinalNum" class="modern-input" placeholder="100" min="1">
+    </div>
+</div>
+                            <div class="form-group full-width">
+                                <label>Notas de Observación:</label>
+                                <textarea id="notas" class="modern-input" rows="2" placeholder="Anomalías o aclaraciones..."></textarea>
+                            </div>
+                        </div>
+                    </section>
+
+                    <section class="card">
+                        <div class="card-header flex-between">
+                            <h2><i class="fas fa-wallet text-accent"></i> Detalle de Documentación</h2>
+                            <button id="addFilaBtn" class="btn-add"><i class="fas fa-plus-circle"></i> Agregar Fila</button>
+                        </div>
+                        <div class="card-body">
+                            <div class="table-responsive">
+                                <table id="tablaPagos" class="modern-table">
+                                    <thead>
+    <tr>
+        <th width="5%"></th>
+        <th width="20%">Forma de Pago</th>
+        <th width="15%">Monto Cierre (Q)</th>
+        <th width="15%">Monto Físico (Q)</th>
+        <th width="15%">Documento</th>
+        <th width="15%">Fecha Doc.</th>
+        <th width="15%">Diferencia (Q)</th>
+    </tr>
+</thead>
+<tbody></tbody>
+<tfoot>
+    <tr class="total-row">
+        <td colspan="2" class="text-right"><strong>TOTALES:</strong></td>
+        <td id="totalCierre" class="font-bold">0.00</td>
+        <td id="totalFisico" class="font-bold">0.00</td>
+        <td></td>
+        <td></td> <td id="totalDiferencia" class="font-bold">0.00</td>
+    </tr>
+</tfoot>
+                                </table>
+                            </div>
+                        </div>
+                    </section>
+                </div>
+
+                <div class="analysis-column">
+                    <section class="card chart-card">
+                        <div class="card-header">
+                            <h2><i class="fas fa-chart-bar text-accent"></i> Análisis de Discrepancia</h2>
+                        </div>
+                        <div class="card-body">
+                            <canvas id="resumenGrafico"></canvas>
+                        </div>
+                    </section>
+
+                    <section class="card">
+                        <div class="card-header">
+                            <h2><i class="fas fa-list-check text-accent"></i> Resumen Consolidado</h2>
+                        </div>
+                        <div class="card-body">
+                            <div id="resumenConsolidadoContainer" class="summary-list">
+                                </div>
+                        </div>
+                    </section>
+                </div>
+            </div>
+
+            <footer class="sticky-actions">
+                <div class="action-buttons-container">
+    <button class="btn btn-azul" id="btnGuardarCierre">
+        <i class="fas fa-cloud-upload-alt"></i> GUARDAR CIERRE DEL DÍA
+    </button>
+    <button class="btn btn-verde" id="btnExportarExcel">
+        <i class="fas fa-file-excel"></i> EXPORTAR EXCEL
+    </button>
+    <button class="btn btn-rojo" id="btnImprimirPdf">
+        <i class="fas fa-file-pdf"></i> IMPRIMIR REPORTE PDF
+    </button>
+</div>
+            </footer>
+        </div>
+
+        <div id="tab-database" class="tab-content hidden">
+            <header class="main-header" style="padding: 0 0 1.5rem 0;">
+                <div class="header-title-area">
+                    <h1>Historial de Cierres Diarios</h1>
+                    <p>Base de datos en la nube de todas las sucursales</p>
+                </div>
+                <button class="btn btn-azul" id="btnActualizarHistorial">
+                    <i class="fas fa-sync-alt"></i> Actualizar Datos
+                </button>
+            </header>
+<div style="display: flex; gap: 10px; margin-bottom: 15px; background: white; padding: 15px; border-radius: 8px; border: 1px solid var(--border); flex-wrap: wrap; align-items: flex-end;">
+    <div class="form-group">
+        <label>Sucursal:</label>
+        <select id="filtroSucursal" class="modern-select">
+            <option value="">Todas</option>
+            <option value="CHIQUIMULA">CHIQUIMULA</option>
+            <option value="SAN NICOLAS 1">SAN NICOLÁS 1</option>
+            <option value="SIXTINO">SIXTINO</option>
+            <option value="FRUTAL">FRUTAL</option>
+            <option value="METRONORTE">METRONORTE</option>
+            <option value="NARANJO">NARANJO</option>
+            <option value="SAN NICOLAS 2">SAN NICOLÁS 2</option>
+            <option value="PERI ROOSEVELT">PERI ROOSEVELT</option>
+        </select>
+    </div>
+    <div class="form-group">
+        <label>Fecha:</label>
+        <input type="date" id="filtroFecha" class="modern-input">
+    </div>
+    <div class="form-group">
+        <label>Usuario:</label>
+        <select id="filtroUsuario" class="modern-select">
+            <option value="">Todos</option>
+        </select>
+    </div>
+    <div class="form-group">
+        <label>Forma de Pago:</label>
+        <select id="filtroFormaPago" class="modern-select">
+            <option value="">Todas</option>
+            <option value="EFECTIVO">EFECTIVO</option>
+            <option value="CHEQUE">CHEQUE</option>
+            <option value="TRANSFERENCIA">TRANSFERENCIA</option>
+            <option value="DEPÓSITOS">DEPÓSITOS</option>
+            <option value="POS BAC">POS BAC</option>
+            <option value="COMPRA CLICK">COMPRA CLICK</option>
+            <option value="POS MÓVIL BAC">POS MÓVIL BAC</option>
+            <option value="POS VISA">POS VISA</option>
+            <option value="VISALINK">VISALINK</option>
+            <option value="CRÉDITOS EMPRESAS">CRÉDITOS EMPRESAS</option>
+            <option value="CXC NÓMINA">CXC NÓMINA</option>
+            <option value="GIFTCARD">GIFTCARD</option>
+        </select>
+    </div>
+    <div class="form-group" style="display: flex; gap: 5px;">
+        <button class="btn btn-azul" id="btnAplicarFiltros" style="padding: 10px 15px;" title="Buscar en pantalla"><i class="fas fa-search"></i></button>
+
+<button class="btn btn-outline" id="btnLimpiarFiltros" style="padding: 10px 15px;" title="Limpiar Filtros"><i class="fas fa-eraser"></i></button>
+
+<button class="btn btn-verde" id="btnExportarDB" style="padding: 10px 15px;"><i class="fas fa-file-excel"></i> Exportar BD</button>
+
+<button class="btn btn-rojo-suave" id="btnExportarPDFDB" style="padding: 10px 15px;"><i class="fas fa-file-pdf"></i> Exportar PDF</button>
+    </div>
+</div>
+            <section class="card">
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="modern-table" id="tablaHistorial">
+                            <thead>
+                                <tr>
+                                    <th>Fecha Recibido</th> 
+                                    <th>Fecha Cierre</th>
+                                    <th>Sucursal</th>
+                                    <th>Usuario</th>
+                                    <th>Total Cierre (Q)</th>
+                                    <th>Total Físico (Q)</th>
+                                    <th>Diferencia (Q)</th>
+                                    <th>Acciones</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr><td colspan="8" style="text-align: center;">Cargando base de datos...</td></tr>
+                            </tbody>
+                        </table>
+
+<div style="display: flex; justify-content: center; align-items: center; gap: 15px; margin-top: 20px;">
+    <button id="btnAnterior" class="btn" style="background: #64748b; padding: 8px 15px;"><i class="fas fa-chevron-left"></i> Anterior</button>
+    <span id="infoPagina" style="font-weight: bold; color: var(--secondary);">Página 1 de 1</span>
+    <button id="btnSiguiente" class="btn" style="background: #64748b; padding: 8px 15px;">Siguiente <i class="fas fa-chevron-right"></i></button>
+</div>
+                    </div>
+                </div>
+            </section>
+        </div>
+    </main>
+</div>
+<div id="modalDetalles" class="modal hidden">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h2><i class="fas fa-info-circle text-accent"></i> Detalles del Cierre</h2>
+            <span class="close-modal">&times;</span>
+        </div>
+        <div class="modal-body" id="modalDetallesBody">
+            </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.31/jspdf.plugin.autotable.min.js"></script>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="script.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+</body>
+</html>
