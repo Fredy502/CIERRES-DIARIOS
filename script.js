@@ -1,6 +1,6 @@
 document.addEventListener('DOMContentLoaded', () => {
 
-    // --- 1. BASE DE DATOS DE USUARIOS MODIFICADA ---
+    // --- 1. BASE DE DATOS DE USUARIOS ---
     const usersDB = {
         // Maestros
         "GD.user01": { pass: "Ax7#Pq29Lm", role: "master" },
@@ -21,8 +21,7 @@ document.addEventListener('DOMContentLoaded', () => {
         "GD.user15": { pass: "B8!Yx71Kt", role: "regular" },
         "GD.user16": { pass: "F3@Lm92Qp", role: "regular" },
         "GD.user17": { pass: "R6#Vc38Wd", role: "regular" },
-        
-        // Sucursales para carga de PDF
+        // Sucursales
         "GD.user18": { pass: "W5$Xp47Nr", role: "sucursal", sucursal: "CHIQUIMULA" },
         "GD.user19": { pass: "H9!Qt62Lb", role: "sucursal", sucursal: "SAN NICOLAS 1" },
         "GD.user20": { pass: "S2@Zk53Mv", role: "sucursal", sucursal: "SIXTINO" },
@@ -35,19 +34,17 @@ document.addEventListener('DOMContentLoaded', () => {
 
     let currentUser = null;
 
-    // --- REFERENCIAS DOM GENERALES ---
+    // --- REFERENCIAS DOM ---
     const loginOverlay = document.getElementById('loginOverlay');
     const appContent = document.getElementById('appContent');
     const displayUserLogueado = document.getElementById('displayUserLogueado');
     const navItems = document.querySelectorAll('.nav-item');
     const tabContents = document.querySelectorAll('.tab-content');
 
-    // --- 2. SISTEMA DE LOGIN Y ENRUTAMIENTO POR ROL ---
+    // --- 2. SISTEMA DE LOGIN ---
     function ejecutarLogin() {
         const userRaw = document.getElementById('loginUser').value.trim();
         const pass = document.getElementById('loginPass').value;
-
-        // Búsqueda de usuario ignorando mayúsculas/minúsculas
         const userKey = Object.keys(usersDB).find(k => k.toLowerCase() === userRaw.toLowerCase());
 
         if (userKey && usersDB[userKey].pass === pass) {
@@ -61,9 +58,9 @@ document.addEventListener('DOMContentLoaded', () => {
             revisarAtrasosSucursales();
             renderizarNotificaciones();
             
-            // Inicializaciones UI Originales
             actualizarUsuarios();
             cargarDatosDiaActual();
+            poblarFiltroUsuariosDB(); 
             cargarHistorialBD();
             if(currentUser.role === 'master') cargarTablaAuditoria();
             
@@ -73,8 +70,6 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     document.getElementById('btnLogin').addEventListener('click', ejecutarLogin);
-
-    // Permitir iniciar sesión presionando "Enter"
     document.getElementById('loginPass').addEventListener('keypress', function(e) {
         if (e.key === 'Enter') ejecutarLogin();
     });
@@ -179,7 +174,6 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // Excepciones
     document.getElementById('btnAgregarExcepcion')?.addEventListener('click', () => {
         const suc = document.getElementById('configSucursal').value;
         const fec = document.getElementById('configFechaExcepcion').value;
@@ -236,39 +230,46 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // --- 4. CARGA PDF ---
-    function notificarPorCorreo(sucursal, fechaCarga) {
-        console.log(`[API MOCK] Enviando correo a fredytezen2001@gmail.com -> Sucursal ${sucursal} subió su PDF del día ${fechaCarga}`);
-    }
-
+    // --- 4. CARGA PDF Y REPOSITORIO (BASE 64) ---
     document.getElementById('btnSubirPdf')?.addEventListener('click', () => {
         const fecha = document.getElementById('fechaCargaPdf').value;
         const fileInput = document.getElementById('archivoPdf');
         
         if(!fecha || !fileInput.files[0]) { alert("⚠️ Por favor selecciona la fecha y el archivo PDF."); return; }
 
-        const fileName = fileInput.files[0].name;
+        const file = fileInput.files[0];
+        const fileName = file.name;
         const sucursal = currentUser.sucursal;
-        const repositorio = JSON.parse(localStorage.getItem('repoArchivos')) || [];
-        const existente = repositorio.find(r => r.sucursal === sucursal && r.fecha === fecha);
-        
-        if (existente) {
-            if(!confirm("Ya existe un archivo para esta fecha. ¿Deseas sobreescribirlo?")) return;
-            existente.archivo = fileName; existente.fechaSubida = new Date().toLocaleString();
-        } else {
-            repositorio.push({ sucursal: sucursal, fecha: fecha, archivo: fileName, usuarioCarga: currentUser.user, fechaSubida: new Date().toLocaleString() });
-        }
 
-        localStorage.setItem('repoArchivos', JSON.stringify(repositorio));
-        agregarNotificacion(`✅ La sucursal ${sucursal} ha subido la documentación del día ${fecha}.`, ['master', 'regular']);
-        notificarPorCorreo(sucursal, fecha);
-        alert("✅ Archivo subido exitosamente a la base de datos.");
-        fileInput.value = "";
+        if (file.size > 2 * 1024 * 1024) { alert("⚠️ El archivo es muy pesado. Intenta comprimir el PDF a menos de 2MB."); return; }
+
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            const fileData = e.target.result;
+            const repositorio = JSON.parse(localStorage.getItem('repoArchivos')) || [];
+            const existente = repositorio.find(r => r.sucursal === sucursal && r.fecha === fecha);
+            
+            if (existente) {
+                if(!confirm("Ya existe un archivo para esta fecha. ¿Deseas sobreescribirlo?")) return;
+                existente.archivo = fileName; existente.fileData = fileData; existente.fechaSubida = new Date().toLocaleString();
+            } else {
+                repositorio.push({ sucursal: sucursal, fecha: fecha, archivo: fileName, fileData: fileData, usuarioCarga: currentUser.user, fechaSubida: new Date().toLocaleString() });
+            }
+
+            try {
+                localStorage.setItem('repoArchivos', JSON.stringify(repositorio));
+                agregarNotificacion(`✅ La sucursal ${sucursal} ha subido la documentación del día ${fecha}.`, ['master', 'regular']);
+                alert("✅ Archivo subido exitosamente a la base de datos.");
+                fileInput.value = "";
+            } catch (error) { alert("❌ Error: Almacenamiento local lleno. Reduzca el tamaño de los PDFs."); }
+        };
+        reader.readAsDataURL(file);
     });
 
-    // --- MEJORA REPOSITORIO HASTA 2035 ---
-    window.descargarSimulado = function(nombreArchivo) {
-        alert(`Iniciando descarga segura del documento:\n📄 ${nombreArchivo}\n\n(Descarga autorizada para su rol).`);
+    window.descargarDocumentoReal = function(nombreArchivo, base64Data) {
+        if (!base64Data) { alert("❌ Este archivo es antiguo y no tiene contenido real guardado. Vuelve a subir el PDF."); return; }
+        const link = document.createElement('a'); link.href = base64Data; link.download = nombreArchivo;
+        document.body.appendChild(link); link.click(); document.body.removeChild(link);
     };
 
     function renderizarRepositorio() {
@@ -280,7 +281,6 @@ document.addEventListener('DOMContentLoaded', () => {
         const arbolArchivos = {};
         const mesesStr = ["Enero","Febrero","Marzo","Abril","Mayo","Junio","Julio","Agosto","Septiembre","Octubre","Noviembre","Diciembre"];
 
-        // Organizar datos
         repo.forEach(item => {
             const [year, month, day] = item.fecha.split('-');
             const mesNombre = mesesStr[parseInt(month)-1];
@@ -290,14 +290,11 @@ document.addEventListener('DOMContentLoaded', () => {
             arbolArchivos[year][mesNombre][day].push(item);
         });
 
-        const anioActual = new Date().getFullYear();
-        const anioMaximo = 2035;
+        const anioActual = new Date().getFullYear(); const anioMaximo = 2035;
 
         for(let anio = anioActual; anio <= anioMaximo; anio++) {
             const anioStr = anio.toString();
-            const detAnio = document.createElement('details'); 
-            detAnio.className = 'folder';
-            
+            const detAnio = document.createElement('details'); detAnio.className = 'folder';
             const tieneArchivosAnio = arbolArchivos[anioStr] !== undefined;
             if(!tieneArchivosAnio) detAnio.classList.add('empty-folder');
 
@@ -307,27 +304,20 @@ document.addEventListener('DOMContentLoaded', () => {
                 for(let mes in arbolArchivos[anioStr]) {
                     const detMes = document.createElement('details'); detMes.className = 'folder';
                     detMes.innerHTML = `<summary>${mes}</summary>`;
-                    
                     Object.keys(arbolArchivos[anioStr][mes]).sort().forEach(dia => {
                         const detDia = document.createElement('details'); detDia.className = 'folder';
                         detDia.innerHTML = `<summary>Día ${dia}</summary>`;
                         
                         arbolArchivos[anioStr][mes][dia].forEach(archivo => {
                             const divFile = document.createElement('div'); divFile.className = 'file-item';
-                            
-                            // MEJORA: Descarga solo para 01-17
                             let btnDescargaHTML = '';
                             if (currentUser.role === 'master' || currentUser.role === 'regular') {
-                                btnDescargaHTML = `<button class="btn-download" onclick="descargarSimulado('${archivo.archivo}')"><i class="fas fa-download"></i> Descargar</button>`;
+                                btnDescargaHTML = `<button class="btn-download" onclick="descargarDocumentoReal('${archivo.archivo}', '${archivo.fileData || ''}')"><i class="fas fa-download"></i> Descargar</button>`;
                             }
-
                             divFile.innerHTML = `
                                 <div class="file-item-info">
                                     <i class="fas fa-file-pdf"></i>
-                                    <div>
-                                        <strong>[${archivo.sucursal}]</strong> ${archivo.archivo} <br>
-                                        <span style="font-size:0.75rem; color:#94a3b8;">Subido por: ${archivo.usuarioCarga} (${archivo.fechaSubida})</span>
-                                    </div>
+                                    <div><strong>[${archivo.sucursal}]</strong> ${archivo.archivo} <br><span style="font-size:0.75rem; color:#94a3b8;">Subido por: ${archivo.usuarioCarga} (${archivo.fechaSubida})</span></div>
                                 </div>
                                 <div>${btnDescargaHTML}</div>
                             `;
@@ -342,10 +332,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    // =========================================================================
-    // --- LÓGICA ORIGINAL RESTAURADA (Auditoría, Cierres Diarios, DB) ---
-    // =========================================================================
-
+    // --- 5. AUDITORÍA ---
     function pedirPermisoMaestro() {
         const adminPass = prompt("⚠️ No tiene permisos para esta acción.\nSolicite a un Usuario Maestro que ingrese su contraseña:");
         if (!adminPass) return false;
@@ -368,6 +355,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     let paginaActualAuditoria = 1; const registrosPorPaginaAuditoria = 15;
+    
     function cargarTablaAuditoria() {
         const auditoria = JSON.parse(localStorage.getItem('auditoriaEstuconta')) || [];
         const tbody = document.querySelector('#tablaAuditoria tbody');
@@ -389,9 +377,9 @@ document.addEventListener('DOMContentLoaded', () => {
         if(infoPagina) infoPagina.textContent = `Página ${paginaActualAuditoria} de ${totalPaginas}`;
 
         tbody.innerHTML = '';
-        if(datosFiltrados.length === 0){
-            tbody.innerHTML = '<tr><td colspan="4" style="text-align: center; padding: 25px; color: #64748b;"><i class="fas fa-folder-open" style="font-size: 2rem; margin-bottom: 10px; display: block;"></i>No se encontraron registros</td></tr>';
-            return;
+        if(datosFiltrados.length === 0){ 
+            tbody.innerHTML = '<tr><td colspan="4" style="text-align: center; color: #64748b; padding:20px;">No se encontraron registros de auditoría</td></tr>'; 
+            return; 
         }
 
         datosPaginados.forEach(item => {
@@ -399,7 +387,6 @@ document.addEventListener('DOMContentLoaded', () => {
             if (item.accion === 'INICIO SESIÓN') { colorClass = 'bg-login'; icon = 'fa-sign-in-alt'; }
             else if (item.accion === 'CIERRE SESIÓN') { colorClass = 'bg-logout'; icon = 'fa-sign-out-alt'; }
             else if (item.accion === 'AGREGAR') { colorClass = 'bg-add'; icon = 'fa-plus-circle'; }
-            else if (item.accion === 'EDITAR') { colorClass = 'bg-edit'; icon = 'fa-edit'; }
             else if (item.accion === 'ELIMINAR') { colorClass = 'bg-delete'; icon = 'fa-trash-alt'; }
             else if (item.accion === 'IMPRESIÓN') { colorClass = 'bg-print'; icon = 'fa-print'; }
 
@@ -411,7 +398,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         <div class="auditoria-avatar"><i class="fas fa-user-tie"></i></div>
                         <div>
                             <strong style="display: block; color: #1e293b; line-height: 1.2;">${item.usuario}</strong>
-                            <span class="badge-rol ${item.rol === 'master' ? 'badge-master' : 'badge-regular'}" style="font-size: 0.65rem; padding: 2px 6px;">${item.rol.toUpperCase()}</span>
+                            <span class="badge-rol ${item.rol === 'master' ? 'badge-master' : 'badge-regular'}">${item.rol.toUpperCase()}</span>
                         </div>
                     </div>
                 </td>
@@ -425,9 +412,31 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('btnBuscarAuditoria')?.addEventListener('click', () => { paginaActualAuditoria = 1; cargarTablaAuditoria(); });
     document.getElementById('btnAnteriorAuditoria')?.addEventListener('click', () => { if(paginaActualAuditoria > 1) { paginaActualAuditoria--; cargarTablaAuditoria(); } });
     document.getElementById('btnSiguienteAuditoria')?.addEventListener('click', () => { paginaActualAuditoria++; cargarTablaAuditoria(); });
+    
+    document.getElementById('btnLimpiarAuditoria')?.addEventListener('click', () => {
+        if (pedirPermisoMaestro()) {
+            if(confirm("¿Estás seguro de eliminar todo el registro de auditoría? Esta acción no se puede deshacer.")) {
+                localStorage.removeItem('auditoriaEstuconta');
+                cargarTablaAuditoria();
+                registrarAuditoria("ELIMINAR", "Se vació todo el historial de auditoría");
+            }
+        }
+    });
 
-    // --- PANEL CIERRE DIARIO ORIGINAL ---
-    let paginaActual = 1; const registrosPorPagina = 10; window.indiceEdicion = -1;
+    document.getElementById('btnExportarAuditoria')?.addEventListener('click', () => {
+        const auditoria = JSON.parse(localStorage.getItem('auditoriaEstuconta')) || [];
+        if(typeof XLSX === 'undefined') return alert("La librería para Excel no está cargada.");
+        const rows = [["Fecha y Hora", "Usuario", "Rol", "Acción", "Detalle"]];
+        auditoria.forEach(a => rows.push([a.fecha, a.usuario, a.rol, a.accion, a.detalle]));
+        const wb = XLSX.utils.book_new();
+        const ws = XLSX.utils.aoa_to_sheet(rows);
+        XLSX.utils.book_append_sheet(wb, ws, "Auditoria");
+        XLSX.writeFile(wb, "Registro_Auditoria_Estuconta.xlsx");
+    });
+
+
+    // --- 6. PANEL CIERRE DIARIO ---
+    let windowIndiceEdicion = -1; // Usado para saber si estamos guardando uno nuevo o editando
     const formasPago = ["EFECTIVO", "CHEQUE", "TRANSFERENCIA", "DEPÓSITOS", "POS BAC", "COMPRA CLICK", "POS MÓVIL BAC", "POS VISA", "VISALINK", "CRÉDITOS EMPRESAS", "CXC NÓMINA", "GIFTCARD"];
     const sucursalSelect = document.getElementById('sucursalSelect');
     const turnoSelect = document.getElementById('turnoSelect');
@@ -448,8 +457,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function obtenerPrefijo() {
         const idSuc = sucursalSelect?.value; const usu = turnoSelect?.value;
-        if (!usu || !datosUsuarios[idSuc]) return "";
-        return datosUsuarios[idSuc][usu] || "";
+        if (!usu || !datosUsuarios[idSuc]) return ""; return datosUsuarios[idSuc][usu] || "";
     }
 
     function actualizarCorrelativo() {
@@ -457,7 +465,8 @@ document.addEventListener('DOMContentLoaded', () => {
         const correlativos = JSON.parse(localStorage.getItem('correlativosEstuconta')) || {};
         document.getElementById('prefixInicio').textContent = prefijo;
         document.getElementById('prefixFinal').textContent = prefijo;
-        if (window.indiceEdicion === -1) {
+        // Solo actualizar si NO estamos editando
+        if(windowIndiceEdicion === -1) {
             document.getElementById('reciboInicioNum').value = correlativos[prefijo] || 1;
             document.getElementById('reciboFinalNum').value = ""; 
         }
@@ -482,10 +491,10 @@ document.addEventListener('DOMContentLoaded', () => {
         const row = document.createElement('tr');
         row.innerHTML = `
             <td style="text-align: center;"><button class="btn-del" title="Eliminar"><i class="fas fa-trash-alt"></i></button></td>
-            <td><select class="table-select">${formasPago.map(f => `<option ${data?.forma === f ? 'selected' : ''}>${f}</option>`).join('')}</select></td>
+            <td><select class="table-select">${formasPago.map(f => `<option ${data?.formaPago === f ? 'selected' : ''}>${f}</option>`).join('')}</select></td>
             <td><input type="number" class="table-input m-cierre" value="${data?.montoCierre || ''}" step="0.01" placeholder="0.00"></td>
             <td><input type="number" class="table-input m-fisico" value="${data?.montoFisico || ''}" step="0.01" placeholder="0.00"></td>
-            <td><input type="text" class="table-input m-doc" value="${data?.noDoc || ''}" placeholder="# Ref."></td>
+            <td><input type="text" class="table-input m-doc" value="${data?.documento || ''}" placeholder="# Ref."></td>
             <td><input type="date" class="table-input m-fecha" value="${data?.fechaDoc || ''}"></td>
             <td class="m-diff" style="text-align: right; padding-right: 15px;">0.00</td>
         `;
@@ -532,26 +541,13 @@ document.addEventListener('DOMContentLoaded', () => {
             if(agrupar[f].c === 0 && agrupar[f].f === 0) return;
             const d = agrupar[f].c - agrupar[f].f;
             labels.push(f); cData.push(agrupar[f].c); fData.push(agrupar[f].f);
-
             let iconoEstado = Math.abs(d) < 0.01 ? '<i class="fas fa-check-circle" style="color: #10b981;"></i>' : '<i class="fas fa-exclamation-circle has-diff"></i>';
             let msgDiferencia = Math.abs(d) < 0.01 ? 'Cuadrado' : (d > 0 ? `Faltan Q${Math.abs(d).toFixed(2)}` : `Sobran Q${Math.abs(d).toFixed(2)}`);
-            let colorBarraFisico = Math.abs(d) < 0.01 ? '#10b981' : (d > 0 ? '#ef4444' : '#f59e0b');
-
+            
             resumenContainer.innerHTML += `
                 <div class="summary-item" style="padding: 12px; background: #f8fafc; border-radius: 8px; border: 1px solid #e2e8f0; margin-bottom: 12px;">
-                    <div class="summary-info">
-                        <span style="font-weight: 700;"><i class="fas fa-money-check-alt" style="color:#94a3b8; margin-right:5px;"></i> ${f}</span>
-                        <span style="display: flex; gap: 6px; font-weight: 600;" class="${Math.abs(d) > 0.01 ? 'has-diff' : ''}">
-                            ${msgDiferencia} ${iconoEstado}
-                        </span>
-                    </div>
-                    <div style="display: flex; justify-content: space-between; font-size: 0.8rem; color: #64748b; margin-bottom: 6px;">
-                        <span>Sistema: Q${agrupar[f].c.toFixed(2)}</span><span>Físico: Q${agrupar[f].f.toFixed(2)}</span>
-                    </div>
-                    <div class="summary-bar-container">
-                        <div class="bar-c" style="width: 100%;"></div>
-                        <div class="bar-f" style="width: ${Math.min((agrupar[f].f / (agrupar[f].c || 1) * 100), 100)}%; background: ${colorBarraFisico};"></div>
-                    </div>
+                    <div class="summary-info"><span style="font-weight: 700;">${f}</span><span class="${Math.abs(d) > 0.01 ? 'has-diff' : ''}">${msgDiferencia} ${iconoEstado}</span></div>
+                    <div style="font-size: 0.8rem; color: #64748b; margin-bottom: 6px; display:flex; justify-content:space-between;"><span>Sistema: Q${agrupar[f].c.toFixed(2)}</span><span>Físico: Q${agrupar[f].f.toFixed(2)}</span></div>
                 </div>`;
         });
         renderChart(labels, cData, fData);
@@ -559,16 +555,12 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function renderChart(labels, cData, fData) {
         if (typeof Chart === 'undefined') return;
-        const canvas = document.getElementById('resumenGrafico');
-        if(!canvas) return;
+        const canvas = document.getElementById('resumenGrafico'); if(!canvas) return;
         const ctx = canvas.getContext('2d');
         if(chartInstance) chartInstance.destroy();
         chartInstance = new Chart(ctx, {
             type: 'bar',
-            data: { labels: labels, datasets: [
-                { label: 'Sistema', data: cData, backgroundColor: 'rgba(59, 130, 246, 0.8)', borderRadius: 6 },
-                { label: 'Físico', data: fData, backgroundColor: 'rgba(16, 185, 129, 0.8)', borderRadius: 6 }
-            ]},
+            data: { labels: labels, datasets: [ { label: 'Sistema', data: cData, backgroundColor: '#3b82f6' }, { label: 'Físico', data: fData, backgroundColor: '#10b981' } ]},
             options: { responsive: true, maintainAspectRatio: false }
         });
     }
@@ -577,13 +569,370 @@ document.addEventListener('DOMContentLoaded', () => {
         if(tablaPagosBody) { tablaPagosBody.innerHTML = ''; for(let i=0; i<3; i++) crearFilaPago(); }
     }
 
+    // --- GUARDADO DEL CIERRE DIARIO ---
     document.getElementById('btnGuardarCierre')?.addEventListener('click', () => {
-        alert('✅ Cierre (Original) guardado con éxito.');
-        registrarAuditoria("AGREGAR", "Se guardó un nuevo cierre diario");
+        const selectElement = document.getElementById('sucursalSelect');
+        const sucursalNombre = selectElement.options[selectElement.selectedIndex].text;
+        
+        const nuevoCierre = {
+            id: windowIndiceEdicion !== -1 ? windowIndiceEdicion : Date.now(), // Mantiene ID si se está editando
+            sucursal: sucursalNombre,
+            usuario: document.getElementById('turnoSelect').value,
+            fechaCierre: document.getElementById('fechaInput').value,
+            fechaRecibido: document.getElementById('fechaRecibido').value,
+            reciboInicio: document.getElementById('prefixInicio').textContent + document.getElementById('reciboInicioNum').value,
+            reciboFinal: document.getElementById('prefixFinal').textContent + document.getElementById('reciboFinalNum').value,
+            notas: document.getElementById('notas').value,
+            totalCierre: document.getElementById('totalCierre').textContent,
+            totalFisico: document.getElementById('totalFisico').textContent,
+            diferencia: document.getElementById('totalDiferencia').textContent,
+            detalles: []
+        };
+
+        document.querySelectorAll('#tablaPagos tbody tr').forEach(row => {
+            nuevoCierre.detalles.push({
+                formaPago: row.querySelector('select').value,
+                montoCierre: row.querySelector('.m-cierre').value,
+                montoFisico: row.querySelector('.m-fisico').value,
+                documento: row.querySelector('.m-doc').value,
+                fechaDoc: row.querySelector('.m-fecha').value,
+                diferencia: row.querySelector('.m-diff').textContent
+            });
+        });
+
+        let historial = JSON.parse(localStorage.getItem('historialCierresEstuconta')) || [];
+        
+        if (windowIndiceEdicion !== -1) {
+            // Actualizar existente
+            const idx = historial.findIndex(c => c.id === windowIndiceEdicion);
+            if(idx > -1) {
+                historial[idx] = nuevoCierre;
+                registrarAuditoria("EDITAR", `Editó el cierre de sucursal ${sucursalNombre} del día ${nuevoCierre.fechaCierre}`);
+                alert('✅ Cierre Diario actualizado correctamente.');
+            }
+            windowIndiceEdicion = -1; // Resetear estado de edición
+        } else {
+            // Guardar nuevo
+            historial.push(nuevoCierre);
+            registrarAuditoria("AGREGAR", `Guardó cierre de sucursal ${sucursalNombre} por Q${nuevoCierre.totalCierre}`);
+            alert('✅ Cierre Diario guardado exitosamente en la base de datos.');
+        }
+
+        localStorage.setItem('historialCierresEstuconta', JSON.stringify(historial));
+
+        // Limpiar formulario y recargar BD
+        cargarDatosDiaActual();
+        document.getElementById('notas').value = "";
+        document.getElementById('reciboFinalNum').value = "";
+        poblarFiltroUsuariosDB(); 
+        paginaActualDB = 1;
+        cargarHistorialBD();
     });
 
-    function cargarHistorialBD() {
-        // ... (Tu lógica original de BD se puede implementar aquí, la tabla está intacta en el HTML)
+
+    // --- 7. HISTORIAL BASE DE DATOS (CON BOTONES DE ACCIÓN) ---
+    let paginaActualDB = 1; const registrosPorPaginaDB = 10; let datosFiltradosDB = [];
+
+    function poblarFiltroUsuariosDB() {
+        const historial = JSON.parse(localStorage.getItem('historialCierresEstuconta')) || [];
+        const usuarios = [...new Set(historial.map(c => c.usuario))].filter(Boolean);
+        const selectUser = document.getElementById('filtroUsuario');
+        if(!selectUser) return;
+        selectUser.innerHTML = '<option value="">Todos</option>';
+        usuarios.forEach(u => {
+            const op = document.createElement('option'); op.value = u; op.textContent = u; selectUser.appendChild(op);
+        });
     }
+
+    function cargarHistorialBD() {
+        const historial = JSON.parse(localStorage.getItem('historialCierresEstuconta')) || [];
+        const fSucursal = document.getElementById('filtroSucursal')?.value || "";
+        const fFecha = document.getElementById('filtroFecha')?.value || "";
+        const fUsuario = document.getElementById('filtroUsuario')?.value || "";
+        const fPago = document.getElementById('filtroFormaPago')?.value || "";
+
+        datosFiltradosDB = historial.filter(c => {
+            let pasa = true;
+            if(fSucursal && c.sucursal !== fSucursal) pasa = false;
+            if(fFecha && c.fechaCierre !== fFecha) pasa = false;
+            if(fUsuario && c.usuario !== fUsuario) pasa = false;
+            if(fPago && c.detalles && !c.detalles.some(d => d.formaPago === fPago)) pasa = false;
+            return pasa;
+        });
+
+        // Orden cronológico inverso (los últimos primero)
+        datosFiltradosDB.reverse();
+        renderizarTablaDB();
+    }
+
+    function renderizarTablaDB() {
+        const tbody = document.querySelector('#tablaHistorial tbody');
+        if(!tbody) return;
+
+        const totalPaginas = Math.ceil(datosFiltradosDB.length / registrosPorPaginaDB) || 1;
+        if(paginaActualDB > totalPaginas) paginaActualDB = totalPaginas;
+
+        const inicio = (paginaActualDB - 1) * registrosPorPaginaDB;
+        const datosPaginados = datosFiltradosDB.slice(inicio, inicio + registrosPorPaginaDB);
+
+        const infoPagina = document.getElementById('infoPagina');
+        if(infoPagina) infoPagina.textContent = `Página ${paginaActualDB} de ${totalPaginas}`;
+
+        tbody.innerHTML = '';
+        if(datosFiltradosDB.length === 0){
+            tbody.innerHTML = '<tr><td colspan="8" style="text-align: center; color: #64748b; padding:20px;"><i class="fas fa-folder-open" style="font-size:2rem; display:block; margin-bottom:10px;"></i>No hay registros en la base de datos.</td></tr>';
+            return;
+        }
+
+        datosPaginados.forEach(cierre => {
+            const tr = document.createElement('tr');
+            tr.innerHTML = `
+                <td>${cierre.fechaRecibido || '-'}</td>
+                <td><strong>${cierre.fechaCierre}</strong></td>
+                <td>${cierre.sucursal}</td>
+                <td>${cierre.usuario}</td>
+                <td style="color:#3b82f6; font-weight:bold;">Q ${cierre.totalCierre}</td>
+                <td style="color:#10b981; font-weight:bold;">Q ${cierre.totalFisico}</td>
+                <td class="${parseFloat(cierre.diferencia) !== 0 ? 'has-diff' : ''}">Q ${cierre.diferencia}</td>
+                <td class="action-buttons-cell">
+                    <button class="btn-icon view" title="Ver Detalles" onclick="verDetallesCierre(${cierre.id})"><i class="fas fa-eye"></i></button>
+                    <button class="btn-icon edit" title="Editar Registro" onclick="editarCierre(${cierre.id})"><i class="fas fa-edit"></i></button>
+                    <button class="btn-icon delete" title="Eliminar Registro" onclick="eliminarCierre(${cierre.id})"><i class="fas fa-trash-alt"></i></button>
+                    <button class="btn-icon download" title="Descargar PDF" onclick="descargarPDFIndividual(${cierre.id})"><i class="fas fa-file-pdf"></i></button>
+                </td>
+            `;
+            tbody.appendChild(tr);
+        });
+    }
+
+    // ACCIONES DE LA TABLA: Eliminar
+    window.eliminarCierre = function(id) {
+        if (!pedirPermisoMaestro()) return;
+        if(confirm("¿Estás seguro de eliminar este registro? Esta acción no se puede deshacer.")) {
+            let historial = JSON.parse(localStorage.getItem('historialCierresEstuconta')) || [];
+            historial = historial.filter(c => c.id !== id);
+            localStorage.setItem('historialCierresEstuconta', JSON.stringify(historial));
+            registrarAuditoria("ELIMINAR", `Eliminó un registro de cierre de la base de datos`);
+            cargarHistorialBD();
+        }
+    };
+
+    // ACCIONES DE LA TABLA: Editar (Carga los datos al tab principal)
+    window.editarCierre = function(id) {
+        if (!pedirPermisoMaestro()) return;
+        const historial = JSON.parse(localStorage.getItem('historialCierresEstuconta')) || [];
+        const cierre = historial.find(c => c.id === id);
+        if(!cierre) return;
+
+        windowIndiceEdicion = id;
+        
+        // Moverse a la pestaña de captura
+        activarTab('tab-captura', 'navCaptura');
+
+        // Llenar datos principales
+        // Encontrar el value del select de sucursal basado en el nombre
+        const opcionesSucursal = Array.from(document.getElementById('sucursalSelect').options);
+        const opEncontrada = opcionesSucursal.find(op => op.text === cierre.sucursal);
+        if(opEncontrada) document.getElementById('sucursalSelect').value = opEncontrada.value;
+        
+        actualizarUsuarios(); // Refresca turnos de la sucursal seleccionada
+        
+        setTimeout(() => {
+            document.getElementById('turnoSelect').value = cierre.usuario;
+            document.getElementById('fechaInput').value = cierre.fechaCierre;
+            document.getElementById('fechaRecibido').value = cierre.fechaRecibido || '';
+            document.getElementById('notas').value = cierre.notas || '';
+            
+            // Extraer números de recibo (separar prefijo)
+            const prefijo = document.getElementById('prefixInicio').textContent;
+            if(cierre.reciboInicio) document.getElementById('reciboInicioNum').value = cierre.reciboInicio.replace(prefijo, '');
+            if(cierre.reciboFinal) document.getElementById('reciboFinalNum').value = cierre.reciboFinal.replace(prefijo, '');
+
+            // Llenar tabla de pagos
+            const tbody = document.querySelector('#tablaPagos tbody');
+            tbody.innerHTML = '';
+            cierre.detalles.forEach(d => crearFilaPago(d));
+            
+            alert("✏️ Modo Edición Activo: Modifica los datos y presiona 'Guardar Cierre' para actualizar.");
+        }, 100);
+    };
+
+    // ACCIONES DE LA TABLA: Ver Detalles (Modal)
+    window.verDetallesCierre = function(id) {
+        const historial = JSON.parse(localStorage.getItem('historialCierresEstuconta')) || [];
+        const cierre = historial.find(c => c.id === id);
+        if(!cierre) return;
+
+        const modalBody = document.getElementById('modalDetallesBody');
+        let htmlDetalles = `
+            <div class="modal-grid-info">
+                <div><span>Sucursal</span><strong>${cierre.sucursal}</strong></div>
+                <div><span>Fecha Cierre</span><strong>${cierre.fechaCierre}</strong></div>
+                <div><span>Usuario</span><strong>${cierre.usuario}</strong></div>
+                <div><span>Recibos</span><strong>${cierre.reciboInicio} al ${cierre.reciboFinal}</strong></div>
+            </div>
+            <h4>Desglose de Documentos</h4>
+            <table class="modern-table" style="margin-bottom: 20px;">
+                <thead><tr><th>Forma</th><th>Cierre (Q)</th><th>Físico (Q)</th><th>Diferencia</th></tr></thead>
+                <tbody>
+        `;
+        cierre.detalles.forEach(d => {
+            htmlDetalles += `<tr><td>${d.formaPago}</td><td>${d.montoCierre}</td><td>${d.montoFisico}</td><td>${d.diferencia}</td></tr>`;
+        });
+        htmlDetalles += `</tbody></table>
+            <div style="background:#f8fafc; padding:15px; border-radius:8px; border:1px solid #e2e8f0;">
+                <p><strong>Notas:</strong> ${cierre.notas || 'Ninguna'}</p>
+            </div>
+        `;
+        modalBody.innerHTML = htmlDetalles;
+        document.getElementById('modalDetalles').classList.remove('hidden');
+    };
+
+    document.getElementById('btnCerrarModal')?.addEventListener('click', () => { document.getElementById('modalDetalles').classList.add('hidden'); });
+
+    // ACCIONES DE LA TABLA: Descargar PDF Individual desde BD
+    window.descargarPDFIndividual = function(id) {
+        if(typeof window.jspdf === 'undefined') { alert("La librería para PDF no cargó correctamente."); return; }
+        const historial = JSON.parse(localStorage.getItem('historialCierresEstuconta')) || [];
+        const cierre = historial.find(c => c.id === id);
+        if(!cierre) return;
+
+        const { jsPDF } = window.jspdf;
+        const doc = new jsPDF();
+        
+        doc.setFontSize(16); doc.text("Reporte de Cierre Diario - Grupo Dent", 14, 20);
+        doc.setFontSize(11);
+        doc.text(`Sucursal: ${cierre.sucursal}`, 14, 30);
+        doc.text(`Fecha: ${cierre.fechaCierre}`, 14, 36);
+        doc.text(`Usuario: ${cierre.usuario}`, 14, 42);
+
+        const tableData = cierre.detalles.map(d => [
+            d.formaPago, `Q ${d.montoCierre}`, `Q ${d.montoFisico}`, d.documento || '-', d.fechaDoc || '-', `Q ${d.diferencia}`
+        ]);
+        tableData.push([ "TOTALES", `Q ${cierre.totalCierre}`, `Q ${cierre.totalFisico}`, "", "", `Q ${cierre.diferencia}` ]);
+
+        doc.autoTable({ startY: 50, head: [["Forma de Pago", "Cierre Sist.", "Físico", "Documento", "Fecha Doc.", "Diferencia"]], body: tableData, theme: 'striped', headStyles: { fillColor: [30, 58, 138] } });
+        doc.save(`Cierre_Reimpresion_${cierre.sucursal}_${cierre.fechaCierre}.pdf`);
+        registrarAuditoria("IMPRESIÓN", `Reimprimió PDF del cierre de ${cierre.sucursal} (${cierre.fechaCierre})`);
+    };
+    
+    // Filtros de BD
+    document.getElementById('btnAplicarFiltros')?.addEventListener('click', () => { paginaActualDB = 1; cargarHistorialBD(); });
+    document.getElementById('btnActualizarHistorial')?.addEventListener('click', () => { paginaActualDB = 1; cargarHistorialBD(); });
+    
+    document.getElementById('btnLimpiarFiltros')?.addEventListener('click', () => {
+        document.getElementById('filtroSucursal').value = '';
+        document.getElementById('filtroFecha').value = '';
+        document.getElementById('filtroUsuario').value = '';
+        document.getElementById('filtroFormaPago').value = '';
+        paginaActualDB = 1; cargarHistorialBD();
+    });
+
+    // Paginación BD
+    document.getElementById('btnAnterior')?.addEventListener('click', () => { if(paginaActualDB > 1) { paginaActualDB--; renderizarTablaDB(); } });
+    document.getElementById('btnSiguiente')?.addEventListener('click', () => {
+        const totalPaginas = Math.ceil(datosFiltradosDB.length / registrosPorPaginaDB) || 1;
+        if(paginaActualDB < totalPaginas) { paginaActualDB++; renderizarTablaDB(); }
+    });
+
+    // Exportación Base de Datos Global Filtrada
+    document.getElementById('btnExportarDB')?.addEventListener('click', () => {
+        if(typeof XLSX === 'undefined') { alert("La librería para Excel no cargó correctamente."); return; }
+        const rows = [["Fecha Recibido", "Fecha Cierre", "Sucursal", "Usuario", "Total Cierre", "Total Físico", "Diferencia"]];
+        datosFiltradosDB.forEach(c => {
+            rows.push([c.fechaRecibido || '-', c.fechaCierre, c.sucursal, c.usuario, c.totalCierre, c.totalFisico, c.diferencia]);
+        });
+        const wb = XLSX.utils.book_new();
+        const ws = XLSX.utils.aoa_to_sheet(rows);
+        XLSX.utils.book_append_sheet(wb, ws, "Historial DB");
+        XLSX.writeFile(wb, "Historial_Cierres_Estuconta.xlsx");
+        registrarAuditoria("IMPRESIÓN", "Exportó el historial de BD a Excel");
+    });
+
+    document.getElementById('btnExportarPDFDB')?.addEventListener('click', () => {
+        if(typeof window.jspdf === 'undefined') { alert("La librería para PDF no cargó correctamente."); return; }
+        const { jsPDF } = window.jspdf;
+        const doc = new jsPDF();
+        doc.setFontSize(14);
+        doc.text("Historial Consolidado de Cierres Diarios", 14, 20);
+        
+        const tableData = datosFiltradosDB.map(c => [
+            c.fechaRecibido || '-', c.fechaCierre, c.sucursal, c.usuario, `Q ${c.totalCierre}`, `Q ${c.totalFisico}`, `Q ${c.diferencia}`
+        ]);
+
+        doc.autoTable({
+            startY: 30,
+            head: [["Recibido", "Cierre", "Sucursal", "Usuario", "Cierre Sist.", "Físico", "Dif."]],
+            body: tableData,
+            theme: 'striped',
+            headStyles: { fillColor: [30, 58, 138] }
+        });
+        doc.save("Historial_Cierres_Estuconta.pdf");
+        registrarAuditoria("IMPRESIÓN", "Exportó el historial de BD a PDF");
+    });
+
+    // --- 8. EXPORTACIÓN INDIVIDUAL EN PANEL DE CAPTURA ---
+    document.getElementById('btnExportarExcel')?.addEventListener('click', () => {
+        if(typeof XLSX === 'undefined') { alert("La librería para Excel no cargó correctamente."); return; }
+        const sucursal = document.getElementById('sucursalSelect').options[document.getElementById('sucursalSelect').selectedIndex].text;
+        const fecha = document.getElementById('fechaInput').value;
+        const wb = XLSX.utils.book_new();
+        
+        const rows = [
+            ["REPORTE DE CIERRE DIARIO - GRUPO DENT"], [],
+            ["Sucursal:", sucursal, "Fecha:", fecha],
+            ["Usuario/Turno:", document.getElementById('turnoSelect').value], [],
+            ["Forma de Pago", "Monto Cierre (Q)", "Monto Físico (Q)", "Documento", "Fecha Doc.", "Diferencia (Q)"]
+        ];
+        
+        document.querySelectorAll('#tablaPagos tbody tr').forEach(row => {
+            rows.push([
+                row.querySelector('select').value,
+                row.querySelector('.m-cierre').value || '0',
+                row.querySelector('.m-fisico').value || '0',
+                row.querySelector('.m-doc').value,
+                row.querySelector('.m-fecha').value,
+                row.querySelector('.m-diff').textContent
+            ]);
+        });
+        
+        rows.push(["TOTALES", document.getElementById('totalCierre').textContent, document.getElementById('totalFisico').textContent, "", "", document.getElementById('totalDiferencia').textContent]);
+
+        const ws = XLSX.utils.aoa_to_sheet(rows);
+        XLSX.utils.book_append_sheet(wb, ws, "Cierre Diario");
+        XLSX.writeFile(wb, `Cierre_${sucursal}_${fecha}.xlsx`);
+        registrarAuditoria("IMPRESIÓN", `Exportó a Excel el cierre de ${sucursal}`);
+    });
+
+    document.getElementById('btnImprimirPdf')?.addEventListener('click', () => {
+        if(typeof window.jspdf === 'undefined') { alert("La librería para PDF no cargó correctamente."); return; }
+        const { jsPDF } = window.jspdf;
+        const doc = new jsPDF();
+        const sucursal = document.getElementById('sucursalSelect').options[document.getElementById('sucursalSelect').selectedIndex].text;
+        const fecha = document.getElementById('fechaInput').value;
+
+        doc.setFontSize(16); doc.text("Reporte de Cierre Diario - Grupo Dent", 14, 20);
+        doc.setFontSize(11);
+        doc.text(`Sucursal: ${sucursal}`, 14, 30);
+        doc.text(`Fecha: ${fecha}`, 14, 36);
+        doc.text(`Usuario: ${document.getElementById('turnoSelect').value}`, 14, 42);
+
+        const tableData = [];
+        document.querySelectorAll('#tablaPagos tbody tr').forEach(row => {
+            tableData.push([
+                row.querySelector('select').value,
+                "Q " + (row.querySelector('.m-cierre').value || '0.00'),
+                "Q " + (row.querySelector('.m-fisico').value || '0.00'),
+                row.querySelector('.m-doc').value || '-',
+                row.querySelector('.m-fecha').value || '-',
+                "Q " + row.querySelector('.m-diff').textContent
+            ]);
+        });
+        tableData.push([ "TOTALES", "Q " + document.getElementById('totalCierre').textContent, "Q " + document.getElementById('totalFisico').textContent, "", "", "Q " + document.getElementById('totalDiferencia').textContent ]);
+
+        doc.autoTable({ startY: 50, head: [["Forma de Pago", "Cierre Sist.", "Físico", "Documento", "Fecha Doc.", "Diferencia"]], body: tableData, theme: 'striped', headStyles: { fillColor: [30, 58, 138] } });
+        doc.save(`Cierre_PDF_${sucursal}_${fecha}.pdf`);
+        registrarAuditoria("IMPRESIÓN", `Imprimió el PDF del cierre de ${sucursal}`);
+    });
 
 });
