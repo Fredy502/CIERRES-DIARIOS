@@ -9,52 +9,104 @@
 </head>
 <body>
 
-<div class="main-wrapper">
+<div id="loginOverlay" class="login-overlay">
+    <div class="login-box">
+        <img src="descarga.png" alt="GrupoDent" onerror="this.style.display='none'">
+        <h2>Control de Acceso</h2>
+        <p>Ingrese sus credenciales para continuar</p>
+        <div class="form-group" style="text-align: left; margin-bottom: 15px;">
+            <label>Usuario:</label>
+            <input type="text" id="loginUser" class="modern-input" placeholder="Ej: GD.user01">
+        </div>
+        <div class="form-group" style="text-align: left; margin-bottom: 20px;">
+            <label>Contraseña:</label>
+            <input type="password" id="loginPass" class="modern-input" placeholder="••••••••">
+        </div>
+        <button id="btnLogin" class="btn btn-azul" style="width: 100%; justify-content: center;">
+            <i class="fas fa-sign-in-alt"></i> Iniciar Sesión
+        </button>
+        <p id="loginError" class="hidden" style="color: var(--danger); font-size: 0.85rem; margin-top: 15px; font-weight: bold;">
+            ❌ Usuario o contraseña incorrectos
+        </p>
+    </div>
+</div>
+
+<div class="main-wrapper hidden" id="appContent">
+    
+    <div class="notif-dropdown" id="notifDropdown">
+        <div class="notif-header">
+            <span><i class="fas fa-bell"></i> Notificaciones</span>
+            <i class="fas fa-times close-notif" style="cursor:pointer;" onclick="document.getElementById('notifDropdown').style.display='none'"></i>
+        </div>
+        <ul class="notif-body" id="notifList"></ul>
+    </div>
+
     <nav class="sidebar">
         <div class="sidebar-header">
-            <img src="descarga.png" alt="GrupoDent" style="max-width: 90%; height: auto; margin: 0 auto; display: block; border-radius: 8px;">
+            <img src="descarga.png" alt="GrupoDent" onerror="this.style.display='none'" style="max-width: 90%; height: auto; margin: 0 auto; display: block; border-radius: 8px; background: white; padding: 5px;">
+            <p id="displayUserLogueado" style="margin-top: 15px; font-size: 0.85rem; color: #bae6fd; font-weight: bold;"></p>
+            
+            <div class="notification-bell hidden" id="btnCampanaNotif">
+                <i class="fas fa-bell"></i>
+                <span class="badge-count" id="notifBadge">0</span>
+            </div>
         </div>
         <ul class="nav-tabs">
-            <li class="nav-item active" data-tab="tab-captura">
+            <li class="nav-item active" id="navCaptura" data-tab="tab-captura">
                 <i class="fas fa-file-invoice-dollar"></i> <span>Cierre Diario</span>
             </li>
-            <li class="nav-item" data-tab="tab-database">
+            <li class="nav-item" id="navDatabase" data-tab="tab-database">
                 <i class="fas fa-server"></i> <span>Historial / DB</span>
+            </li>
+            <li class="nav-item" id="navAuditoria" data-tab="tab-auditoria">
+                <i class="fas fa-user-clock"></i> <span>Auditoría</span>
+            </li>
+            <li class="nav-item hidden" id="navCarga" data-tab="tab-carga">
+                <i class="fas fa-cloud-upload-alt"></i> <span>Carga de Documentos</span>
+            </li>
+            <li class="nav-item hidden" id="navRepositorio" data-tab="tab-repositorio">
+                <i class="fas fa-folder-tree"></i> <span>Repositorio General</span>
+            </li>
+            <li class="nav-item hidden" id="navConfigNotif" data-tab="tab-config">
+                <i class="fas fa-cogs"></i> <span>Config. Notificaciones</span>
             </li>
         </ul>
         <div class="sidebar-footer">
+            <button id="btnCerrarSesion" class="btn btn-rojo" style="width: 100%; justify-content: center; padding: 8px; font-size: 0.8rem; margin-bottom: 10px;">
+                <i class="fas fa-sign-out-alt"></i> Salir
+            </button>
             <p>&copy; 2026 - Gestión Interna</p>
         </div>
     </nav>
 
     <main class="content-container">
-        <header class="main-header">
-            <div class="header-title-area">
-                <h1>Panel de Cierres Diarios</h1>
-                <p>Gestión de flujo de caja y conciliación de terminales</p>
-            </div>
-            <div class="global-selectors">
-                <div class="selector-group">
-                    <label><i class="fas fa-store"></i></label>
-                    <select id="sucursalSelect" class="modern-select">
-                        <option value="1">CHIQUIMULA</option>
-                        <option value="2">SAN NICOLAS 1</option>
-                        <option value="3">SIXTINO</option>
-                        <option value="4">FRUTAL</option>
-                        <option value="5">METRONORTE</option>
-                        <option value="6">NARANJO</option>
-                        <option value="7">SAN NICOLAS 2</option>
-                        <option value="8">PERI ROOSEVELT</option>
-                    </select>
-                </div>
-                <div class="selector-group">
-                    <label><i class="fas fa-calendar-day"></i></label>
-                    <input type="date" id="fechaInput" class="modern-input">
-                </div>
-            </div>
-        </header>
-
         <div id="tab-captura" class="tab-content active">
+            <header class="main-header" id="headerCaptura">
+                <div class="header-title-area">
+                    <h1>Panel de Cierres Diarios</h1>
+                    <p>Gestión de flujo de caja y conciliación de terminales</p>
+                </div>
+                <div class="global-selectors">
+                    <div class="selector-group">
+                        <label><i class="fas fa-store"></i></label>
+                        <select id="sucursalSelect" class="modern-select">
+                            <option value="1">CHIQUIMULA</option>
+                            <option value="2">SAN NICOLAS 1</option>
+                            <option value="3">SIXTINO</option>
+                            <option value="4">FRUTAL</option>
+                            <option value="5">METRONORTE</option>
+                            <option value="6">NARANJO</option>
+                            <option value="7">SAN NICOLAS 2</option>
+                            <option value="8">PERI ROOSEVELT</option>
+                        </select>
+                    </div>
+                    <div class="selector-group">
+                        <label><i class="fas fa-calendar-day"></i></label>
+                        <input type="date" id="fechaInput" class="modern-input">
+                    </div>
+                </div>
+            </header>
+
             <div class="dashboard-grid">
                 <div class="forms-column">
                     <section class="card">
@@ -71,19 +123,19 @@
                                 <input type="date" id="fechaRecibido" class="modern-input">
                             </div>
                             <div class="form-group">
-    <label>Recibo Inicio:</label>
-    <div class="input-group">
-        <span id="prefixInicio" class="input-prefix"></span>
-        <input type="number" id="reciboInicioNum" class="modern-input" placeholder="001" min="1">
-    </div>
-</div>
-<div class="form-group">
-    <label>Recibo Final:</label>
-    <div class="input-group">
-        <span id="prefixFinal" class="input-prefix"></span>
-        <input type="number" id="reciboFinalNum" class="modern-input" placeholder="100" min="1">
-    </div>
-</div>
+                                <label>Recibo Inicio:</label>
+                                <div class="input-group">
+                                    <span id="prefixInicio" class="input-prefix"></span>
+                                    <input type="number" id="reciboInicioNum" class="modern-input" placeholder="001" min="1">
+                                </div>
+                            </div>
+                            <div class="form-group">
+                                <label>Recibo Final:</label>
+                                <div class="input-group">
+                                    <span id="prefixFinal" class="input-prefix"></span>
+                                    <input type="number" id="reciboFinalNum" class="modern-input" placeholder="100" min="1">
+                                </div>
+                            </div>
                             <div class="form-group full-width">
                                 <label>Notas de Observación:</label>
                                 <textarea id="notas" class="modern-input" rows="2" placeholder="Anomalías o aclaraciones..."></textarea>
@@ -100,26 +152,26 @@
                             <div class="table-responsive">
                                 <table id="tablaPagos" class="modern-table">
                                     <thead>
-    <tr>
-        <th width="5%"></th>
-        <th width="20%">Forma de Pago</th>
-        <th width="15%">Monto Cierre (Q)</th>
-        <th width="15%">Monto Físico (Q)</th>
-        <th width="15%">Documento</th>
-        <th width="15%">Fecha Doc.</th>
-        <th width="15%">Diferencia (Q)</th>
-    </tr>
-</thead>
-<tbody></tbody>
-<tfoot>
-    <tr class="total-row">
-        <td colspan="2" class="text-right"><strong>TOTALES:</strong></td>
-        <td id="totalCierre" class="font-bold">0.00</td>
-        <td id="totalFisico" class="font-bold">0.00</td>
-        <td></td>
-        <td></td> <td id="totalDiferencia" class="font-bold">0.00</td>
-    </tr>
-</tfoot>
+                                        <tr>
+                                            <th width="5%"></th>
+                                            <th width="20%">Forma de Pago</th>
+                                            <th width="15%">Monto Cierre (Q)</th>
+                                            <th width="15%">Monto Físico (Q)</th>
+                                            <th width="15%">Documento</th>
+                                            <th width="15%">Fecha Doc.</th>
+                                            <th width="15%">Diferencia (Q)</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody></tbody>
+                                    <tfoot>
+                                        <tr class="total-row">
+                                            <td colspan="2" class="text-right"><strong>TOTALES:</strong></td>
+                                            <td id="totalCierre" class="font-bold">0.00</td>
+                                            <td id="totalFisico" class="font-bold">0.00</td>
+                                            <td></td>
+                                            <td></td> <td id="totalDiferencia" class="font-bold">0.00</td>
+                                        </tr>
+                                    </tfoot>
                                 </table>
                             </div>
                         </div>
@@ -141,8 +193,7 @@
                             <h2><i class="fas fa-list-check text-accent"></i> Resumen Consolidado</h2>
                         </div>
                         <div class="card-body">
-                            <div id="resumenConsolidadoContainer" class="summary-list">
-                                </div>
+                            <div id="resumenConsolidadoContainer" class="summary-list"></div>
                         </div>
                     </section>
                 </div>
@@ -150,82 +201,79 @@
 
             <footer class="sticky-actions">
                 <div class="action-buttons-container">
-    <button class="btn btn-azul" id="btnGuardarCierre">
-        <i class="fas fa-cloud-upload-alt"></i> GUARDAR CIERRE DEL DÍA
-    </button>
-    <button class="btn btn-verde" id="btnExportarExcel">
-        <i class="fas fa-file-excel"></i> EXPORTAR EXCEL
-    </button>
-    <button class="btn btn-rojo" id="btnImprimirPdf">
-        <i class="fas fa-file-pdf"></i> IMPRIMIR REPORTE PDF
-    </button>
-</div>
+                    <button class="btn btn-azul" id="btnGuardarCierre">
+                        <i class="fas fa-cloud-upload-alt"></i> GUARDAR CIERRE DEL DÍA
+                    </button>
+                    <button class="btn btn-verde" id="btnExportarExcel">
+                        <i class="fas fa-file-excel"></i> EXPORTAR EXCEL
+                    </button>
+                    <button class="btn btn-rojo" id="btnImprimirPdf">
+                        <i class="fas fa-file-pdf"></i> IMPRIMIR REPORTE PDF
+                    </button>
+                </div>
             </footer>
         </div>
 
         <div id="tab-database" class="tab-content hidden">
-            <header class="main-header" style="padding: 0 0 1.5rem 0;">
+            <header class="main-header" style="padding: 2rem 0 1.5rem 0;">
                 <div class="header-title-area">
                     <h1>Historial de Cierres Diarios</h1>
-                    <p>Base de datos en la nube de todas las sucursales</p>
+                    <p>Base de datos de todas las sucursales</p>
                 </div>
                 <button class="btn btn-azul" id="btnActualizarHistorial">
                     <i class="fas fa-sync-alt"></i> Actualizar Datos
                 </button>
             </header>
-<div style="display: flex; gap: 10px; margin-bottom: 15px; background: white; padding: 15px; border-radius: 8px; border: 1px solid var(--border); flex-wrap: wrap; align-items: flex-end;">
-    <div class="form-group">
-        <label>Sucursal:</label>
-        <select id="filtroSucursal" class="modern-select">
-            <option value="">Todas</option>
-            <option value="CHIQUIMULA">CHIQUIMULA</option>
-            <option value="SAN NICOLAS 1">SAN NICOLÁS 1</option>
-            <option value="SIXTINO">SIXTINO</option>
-            <option value="FRUTAL">FRUTAL</option>
-            <option value="METRONORTE">METRONORTE</option>
-            <option value="NARANJO">NARANJO</option>
-            <option value="SAN NICOLAS 2">SAN NICOLÁS 2</option>
-            <option value="PERI ROOSEVELT">PERI ROOSEVELT</option>
-        </select>
-    </div>
-    <div class="form-group">
-        <label>Fecha:</label>
-        <input type="date" id="filtroFecha" class="modern-input">
-    </div>
-    <div class="form-group">
-        <label>Usuario:</label>
-        <select id="filtroUsuario" class="modern-select">
-            <option value="">Todos</option>
-        </select>
-    </div>
-    <div class="form-group">
-        <label>Forma de Pago:</label>
-        <select id="filtroFormaPago" class="modern-select">
-            <option value="">Todas</option>
-            <option value="EFECTIVO">EFECTIVO</option>
-            <option value="CHEQUE">CHEQUE</option>
-            <option value="TRANSFERENCIA">TRANSFERENCIA</option>
-            <option value="DEPÓSITOS">DEPÓSITOS</option>
-            <option value="POS BAC">POS BAC</option>
-            <option value="COMPRA CLICK">COMPRA CLICK</option>
-            <option value="POS MÓVIL BAC">POS MÓVIL BAC</option>
-            <option value="POS VISA">POS VISA</option>
-            <option value="VISALINK">VISALINK</option>
-            <option value="CRÉDITOS EMPRESAS">CRÉDITOS EMPRESAS</option>
-            <option value="CXC NÓMINA">CXC NÓMINA</option>
-            <option value="GIFTCARD">GIFTCARD</option>
-        </select>
-    </div>
-    <div class="form-group" style="display: flex; gap: 5px;">
-        <button class="btn btn-azul" id="btnAplicarFiltros" style="padding: 10px 15px;" title="Buscar en pantalla"><i class="fas fa-search"></i></button>
-
-<button class="btn btn-outline" id="btnLimpiarFiltros" style="padding: 10px 15px;" title="Limpiar Filtros"><i class="fas fa-eraser"></i></button>
-
-<button class="btn btn-verde" id="btnExportarDB" style="padding: 10px 15px;"><i class="fas fa-file-excel"></i> Exportar BD</button>
-
-<button class="btn btn-rojo-suave" id="btnExportarPDFDB" style="padding: 10px 15px;"><i class="fas fa-file-pdf"></i> Exportar PDF</button>
-    </div>
-</div>
+            <div style="display: flex; gap: 10px; margin-bottom: 15px; background: white; padding: 15px; border-radius: 8px; border: 1px solid var(--border); flex-wrap: wrap; align-items: flex-end;">
+                <div class="form-group">
+                    <label>Sucursal:</label>
+                    <select id="filtroSucursal" class="modern-select">
+                        <option value="">Todas</option>
+                        <option value="CHIQUIMULA">CHIQUIMULA</option>
+                        <option value="SAN NICOLAS 1">SAN NICOLÁS 1</option>
+                        <option value="SIXTINO">SIXTINO</option>
+                        <option value="FRUTAL">FRUTAL</option>
+                        <option value="METRONORTE">METRONORTE</option>
+                        <option value="NARANJO">NARANJO</option>
+                        <option value="SAN NICOLAS 2">SAN NICOLÁS 2</option>
+                        <option value="PERI ROOSEVELT">PERI ROOSEVELT</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Fecha:</label>
+                    <input type="date" id="filtroFecha" class="modern-input">
+                </div>
+                <div class="form-group">
+                    <label>Usuario:</label>
+                    <select id="filtroUsuario" class="modern-select">
+                        <option value="">Todos</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Forma de Pago:</label>
+                    <select id="filtroFormaPago" class="modern-select">
+                        <option value="">Todas</option>
+                        <option value="EFECTIVO">EFECTIVO</option>
+                        <option value="CHEQUE">CHEQUE</option>
+                        <option value="TRANSFERENCIA">TRANSFERENCIA</option>
+                        <option value="DEPÓSITOS">DEPÓSITOS</option>
+                        <option value="POS BAC">POS BAC</option>
+                        <option value="COMPRA CLICK">COMPRA CLICK</option>
+                        <option value="POS MÓVIL BAC">POS MÓVIL BAC</option>
+                        <option value="POS VISA">POS VISA</option>
+                        <option value="VISALINK">VISALINK</option>
+                        <option value="CRÉDITOS EMPRESAS">CRÉDITOS EMPRESAS</option>
+                        <option value="CXC NÓMINA">CXC NÓMINA</option>
+                        <option value="GIFTCARD">GIFTCARD</option>
+                    </select>
+                </div>
+                <div class="form-group" style="display: flex; gap: 5px;">
+                    <button class="btn btn-azul" id="btnAplicarFiltros" style="padding: 10px 15px;" title="Buscar en pantalla"><i class="fas fa-search"></i></button>
+                    <button class="btn btn-rojo" id="btnLimpiarFiltros" style="padding: 10px 15px; background-color: #64748b;" title="Limpiar Filtros"><i class="fas fa-eraser"></i></button>
+                    <button class="btn btn-verde" id="btnExportarDB" style="padding: 10px 15px;"><i class="fas fa-file-excel"></i> Exportar BD</button>
+                    <button class="btn btn-rojo" id="btnExportarPDFDB" style="padding: 10px 15px;"><i class="fas fa-file-pdf"></i> Exportar PDF</button>
+                </div>
+            </div>
             <section class="card">
                 <div class="card-body">
                     <div class="table-responsive">
@@ -246,35 +294,178 @@
                                 <tr><td colspan="8" style="text-align: center;">Cargando base de datos...</td></tr>
                             </tbody>
                         </table>
-
-<div style="display: flex; justify-content: center; align-items: center; gap: 15px; margin-top: 20px;">
-    <button id="btnAnterior" class="btn" style="background: #64748b; padding: 8px 15px;"><i class="fas fa-chevron-left"></i> Anterior</button>
-    <span id="infoPagina" style="font-weight: bold; color: var(--secondary);">Página 1 de 1</span>
-    <button id="btnSiguiente" class="btn" style="background: #64748b; padding: 8px 15px;">Siguiente <i class="fas fa-chevron-right"></i></button>
-</div>
+                        <div style="display: flex; justify-content: center; align-items: center; gap: 15px; margin-top: 20px;">
+                            <button id="btnAnterior" class="btn" style="background: #64748b; padding: 8px 15px;"><i class="fas fa-chevron-left"></i> Anterior</button>
+                            <span id="infoPagina" style="font-weight: bold; color: var(--secondary);">Página 1 de 1</span>
+                            <button id="btnSiguiente" class="btn" style="background: #64748b; padding: 8px 15px;">Siguiente <i class="fas fa-chevron-right"></i></button>
+                        </div>
                     </div>
+                </div>
+            </section>
+        </div>
+
+        <div id="tab-auditoria" class="tab-content hidden">
+            <header class="main-header" style="padding: 2rem 0 1.5rem 0;">
+                <div class="header-title-area">
+                    <h1>Registro de Auditoría</h1>
+                    <p>Monitoreo avanzado de actividad de usuarios (Exclusivo Maestros)</p>
+                </div>
+                <button class="btn btn-rojo" id="btnLimpiarAuditoria">
+                    <i class="fas fa-trash-alt"></i> Limpiar Historial
+                </button>
+            </header>
+            
+            <div style="display: flex; gap: 10px; margin-bottom: 15px; background: white; padding: 15px; border-radius: 8px; border: 1px solid var(--border); flex-wrap: wrap; align-items: flex-end; justify-content: space-between;">
+                <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+                    <div class="form-group">
+                        <label><i class="fas fa-search"></i> Buscar detalle o usuario:</label>
+                        <input type="text" id="filtroTextoAuditoria" class="modern-input" placeholder="Ej. user03 o SIXTINO...">
+                    </div>
+                    <div class="form-group">
+                        <label><i class="fas fa-filter"></i> Filtrar por Acción:</label>
+                        <select id="filtroAccionAuditoria" class="modern-select">
+                            <option value="">Todas las acciones</option>
+                            <option value="INICIO SESIÓN">Inicio de Sesión</option>
+                            <option value="CIERRE SESIÓN">Cierre de Sesión</option>
+                            <option value="AGREGAR">Agregar Registro</option>
+                            <option value="EDITAR">Editar Registro</option>
+                            <option value="ELIMINAR">Eliminar Registro</option>
+                            <option value="IMPRESIÓN">Impresión / Exportación</option>
+                            <option value="SISTEMA">Eventos de Sistema</option>
+                        </select>
+                    </div>
+                    <div class="form-group" style="display: flex; align-items: flex-end;">
+                        <button class="btn btn-azul" id="btnBuscarAuditoria" style="padding: 10px 15px;" title="Aplicar filtros"><i class="fas fa-search"></i> Filtrar</button>
+                    </div>
+                </div>
+                <div class="form-group" style="display: flex; align-items: flex-end;">
+                    <button class="btn btn-verde" id="btnExportarAuditoria" style="padding: 10px 15px;"><i class="fas fa-file-excel"></i> Exportar Log a Excel</button>
+                </div>
+            </div>
+
+            <section class="card">
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="modern-table" id="tablaAuditoria">
+                            <thead>
+                                <tr>
+                                    <th width="15%"><i class="far fa-calendar-alt"></i> Fecha y Hora</th>
+                                    <th width="20%"><i class="fas fa-user"></i> Usuario / Rol</th>
+                                    <th width="15%"><i class="fas fa-bolt"></i> Acción</th>
+                                    <th width="50%"><i class="fas fa-info-circle"></i> Detalle del evento</th>
+                                </tr>
+                            </thead>
+                            <tbody></tbody>
+                        </table>
+                        
+                        <div style="display: flex; justify-content: center; align-items: center; gap: 15px; margin-top: 20px;">
+                            <button id="btnAnteriorAuditoria" class="btn" style="background: #64748b; padding: 8px 15px;"><i class="fas fa-chevron-left"></i> Anterior</button>
+                            <span id="infoPaginaAuditoria" style="font-weight: bold; color: var(--secondary);">Página 1 de 1</span>
+                            <button id="btnSiguienteAuditoria" class="btn" style="background: #64748b; padding: 8px 15px;">Siguiente <i class="fas fa-chevron-right"></i></button>
+                        </div>
+                    </div>
+                </div>
+            </section>
+        </div>
+
+        <div id="tab-carga" class="tab-content hidden">
+            <header class="main-header" style="padding: 2rem 0 1.5rem 0;">
+                <div class="header-title-area">
+                    <h1>Carga de Documentación Diaria</h1>
+                    <p>Sube el reporte consolidado en formato PDF para revisión central</p>
+                </div>
+            </header>
+            <section class="card" style="max-width: 600px; margin: 0 auto;">
+                <div class="card-body" style="text-align: center; padding: 40px 20px;">
+                    <i class="fas fa-file-pdf" style="font-size: 4rem; color: #ef4444; margin-bottom: 20px;"></i>
+                    <h3 style="margin-bottom: 20px; color: #1e293b;">Subir PDF del Día</h3>
+                    
+                    <div class="form-group" style="text-align: left; margin-bottom: 20px;">
+                        <label>Selecciona la Fecha correspondiente al archivo:</label>
+                        <input type="date" id="fechaCargaPdf" class="modern-input">
+                    </div>
+
+                    <div class="form-group" style="text-align: left; margin-bottom: 20px;">
+                        <label>Archivo PDF (Máx 5MB recomendado para localStorage):</label>
+                        <input type="file" id="archivoPdf" accept=".pdf" class="modern-input" style="padding: 10px; background: #f8fafc;">
+                    </div>
+
+                    <button class="btn btn-azul" id="btnSubirPdf" style="width: 100%;">
+                        <i class="fas fa-cloud-upload-alt"></i> Subir y Notificar
+                    </button>
+                    <p style="font-size: 0.8rem; color: #64748b; margin-top: 15px;">*Al subir el archivo, se notificará automáticamente a los administradores.</p>
+                </div>
+            </section>
+        </div>
+
+        <div id="tab-repositorio" class="tab-content hidden">
+            <header class="main-header" style="padding: 2rem 0 1.5rem 0;">
+                <div class="header-title-area">
+                    <h1>Repositorio Central de Archivos</h1>
+                    <p>Documentación organizada cronológicamente</p>
+                </div>
+            </header>
+            <section class="card">
+                <div class="card-body" id="treeViewContainer" style="padding: 20px; min-height: 400px;">
+                    </div>
+            </section>
+        </div>
+
+        <div id="tab-config" class="tab-content hidden">
+            <header class="main-header" style="padding: 2rem 0 1.5rem 0;">
+                <div class="header-title-area">
+                    <h1>Configuración de Notificaciones (Atrasos)</h1>
+                    <p>Define días exceptuados (asuetos, feriados) donde no se exigirá carga a las sucursales</p>
+                </div>
+            </header>
+            <section class="card" style="max-width: 600px;">
+                <div class="card-body">
+                    <div class="form-group" style="margin-bottom: 15px;">
+                        <label>Seleccionar Sucursal:</label>
+                        <select id="configSucursal" class="modern-select">
+                            <option value="CHIQUIMULA">CHIQUIMULA</option>
+                            <option value="SAN NICOLAS 1">SAN NICOLAS 1</option>
+                            <option value="SIXTINO">SIXTINO</option>
+                            <option value="FRUTAL">FRUTAL</option>
+                            <option value="METRONORTE">METRONORTE</option>
+                            <option value="NARANJO">NARANJO</option>
+                            <option value="SAN NICOLAS 2">SAN NICOLAS 2</option>
+                            <option value="PERI ROOSEVELT">PERI ROOSEVELT</option>
+                        </select>
+                    </div>
+                    <div class="form-group" style="margin-bottom: 15px;">
+                        <label>Fecha a exceptuar (ej. Feriado):</label>
+                        <input type="date" id="configFechaExcepcion" class="modern-input">
+                    </div>
+                    <button class="btn btn-verde" id="btnAgregarExcepcion"><i class="fas fa-plus"></i> Agregar Excepción</button>
+                    
+                    <hr style="border: 0; border-top: 1px solid var(--border); margin: 20px 0;">
+                    
+                    <h4>Días Excluidos Registrados:</h4>
+                    <ul id="listaExcepciones" style="list-style: none; padding: 0;"></ul>
                 </div>
             </section>
         </div>
     </main>
 </div>
+
 <div id="modalDetalles" class="modal hidden">
     <div class="modal-content">
         <div class="modal-header">
-            <h2><i class="fas fa-info-circle text-accent"></i> Detalles del Cierre</h2>
+            <div style="display: flex; align-items: center; gap: 10px;">
+                <i class="fas fa-info-circle" style="color: #3b82f6; font-size: 1.5rem;"></i>
+                <h2 style="color: #0f172a; font-weight: 700; font-size: 1.3rem;">Detalles del Cierre</h2>
+            </div>
             <span class="close-modal">&times;</span>
         </div>
-        <div class="modal-body" id="modalDetallesBody">
-            </div>
+        <div class="modal-body" id="modalDetallesBody"></div>
     </div>
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.31/jspdf.plugin.autotable.min.js"></script>
-
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <script src="script.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 </body>
 </html>
