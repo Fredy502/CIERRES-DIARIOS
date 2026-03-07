@@ -4,7 +4,11 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Estuconta - Cierre Diario</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
@@ -57,6 +61,9 @@
             </li>
             <li class="nav-item" id="navDatabase" data-tab="tab-database">
                 <i class="fas fa-server"></i> <span>Historial / DB</span>
+            </li>
+            <li class="nav-item hidden" id="navResumen" data-tab="tab-resumen">
+                <i class="fas fa-chart-pie"></i> <span>Resumen Mensual</span>
             </li>
             <li class="nav-item" id="navAuditoria" data-tab="tab-auditoria">
                 <i class="fas fa-user-clock"></i> <span>Auditoría</span>
@@ -126,7 +133,7 @@
                                 <label>Recibo Inicio:</label>
                                 <div class="input-group">
                                     <span id="prefixInicio" class="input-prefix"></span>
-                                    <input type="number" id="reciboInicioNum" class="modern-input" placeholder="001" min="1">
+                                    <input type="number" id="reciboInicioNum" class="modern-input" placeholder="Calculando..." min="1" disabled style="background-color: #e2e8f0; cursor: not-allowed; font-weight: bold;">
                                 </div>
                             </div>
                             <div class="form-group">
@@ -224,7 +231,7 @@
                     <i class="fas fa-sync-alt"></i> Actualizar Datos
                 </button>
             </header>
-            <div style="display: flex; gap: 10px; margin-bottom: 15px; background: white; padding: 15px; border-radius: 8px; border: 1px solid var(--border); flex-wrap: wrap; align-items: flex-end;">
+            <div style="display: flex; gap: 10px; margin-bottom: 15px; background: white; padding: 15px; border-radius: 8px; border: 1px solid var(--border); flex-wrap: wrap; align-items: flex-end; box-shadow: var(--shadow-sm);">
                 <div class="form-group">
                     <label>Sucursal:</label>
                     <select id="filtroSucursal" class="modern-select">
@@ -304,6 +311,62 @@
             </section>
         </div>
 
+        <div id="tab-resumen" class="tab-content hidden">
+            <header class="main-header" style="padding: 2rem 0 1.5rem 0;">
+                <div class="header-title-area">
+                    <h1>Resumen Mensual Contable</h1>
+                    <p>Agrupación de datos por sucursal y forma de pago para cuadre contra cuentas de mayor</p>
+                </div>
+            </header>
+            <div style="display: flex; gap: 10px; margin-bottom: 15px; background: white; padding: 15px; border-radius: 8px; border: 1px solid var(--border); flex-wrap: wrap; align-items: flex-end; box-shadow: var(--shadow-sm);">
+                <div class="form-group">
+                    <label><i class="fas fa-calendar-alt"></i> Mes a conciliar:</label>
+                    <input type="month" id="filtroMesResumen" class="modern-input">
+                </div>
+                <div class="form-group">
+                    <label><i class="fas fa-store"></i> Filtrar Sucursal:</label>
+                    <select id="filtroSucursalResumen" class="modern-select">
+                        <option value="">TODAS LAS SUCURSALES</option>
+                        <option value="CHIQUIMULA">CHIQUIMULA</option>
+                        <option value="SAN NICOLAS 1">SAN NICOLÁS 1</option>
+                        <option value="SIXTINO">SIXTINO</option>
+                        <option value="FRUTAL">FRUTAL</option>
+                        <option value="METRONORTE">METRONORTE</option>
+                        <option value="NARANJO">NARANJO</option>
+                        <option value="SAN NICOLAS 2">SAN NICOLÁS 2</option>
+                        <option value="PERI ROOSEVELT">PERI ROOSEVELT</option>
+                    </select>
+                </div>
+                <div class="form-group" style="display: flex; gap: 5px;">
+                    <button class="btn btn-azul" id="btnGenerarResumen" style="padding: 10px 15px;"><i class="fas fa-sync-alt"></i> Procesar Cuadre</button>
+                    <button class="btn btn-verde" id="btnExportarResumenExcel" style="padding: 10px 15px;"><i class="fas fa-file-excel"></i> Descargar Excel</button>
+                </div>
+            </div>
+            
+            <section class="card">
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="modern-table" id="tablaResumenMensual">
+                            <thead>
+                                <tr>
+                                    <th width="20%">Sucursal</th>
+                                    <th width="25%">Forma de Pago</th>
+                                    <th width="20%">Suma Total Sistema (Q)</th>
+                                    <th width="20%">Suma Total Físico (Q)</th>
+                                    <th width="15%">Diferencia Mensual (Q)</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr><td colspan="5" style="text-align: center; color: #64748b; padding:40px;"><i class="fas fa-chart-pie" style="font-size:3rem; display:block; margin-bottom:15px; color:#cbd5e1;"></i>Seleccione un mes y presione "Procesar Cuadre"</td></tr>
+                            </tbody>
+                            <tfoot id="tfootResumenMensual">
+                            </tfoot>
+                        </table>
+                    </div>
+                </div>
+            </section>
+        </div>
+
         <div id="tab-auditoria" class="tab-content hidden">
             <header class="main-header" style="padding: 2rem 0 1.5rem 0;">
                 <div class="header-title-area">
@@ -315,7 +378,7 @@
                 </button>
             </header>
             
-            <div style="display: flex; gap: 10px; margin-bottom: 15px; background: white; padding: 15px; border-radius: 8px; border: 1px solid var(--border); flex-wrap: wrap; align-items: flex-end; justify-content: space-between;">
+            <div style="display: flex; gap: 10px; margin-bottom: 15px; background: white; padding: 15px; border-radius: 8px; border: 1px solid var(--border); flex-wrap: wrap; align-items: flex-end; justify-content: space-between; box-shadow: var(--shadow-sm);">
                 <div style="display: flex; gap: 10px; flex-wrap: wrap;">
                     <div class="form-group">
                         <label><i class="fas fa-search"></i> Buscar detalle o usuario:</label>
@@ -326,6 +389,7 @@
                         <select id="filtroAccionAuditoria" class="modern-select">
                             <option value="">Todas las acciones</option>
                             <option value="INICIO SESIÓN">Inicio de Sesión</option>
+                            <option value="ERROR SESIÓN">Error Sesión</option>
                             <option value="CIERRE SESIÓN">Cierre de Sesión</option>
                             <option value="AGREGAR">Agregar Registro</option>
                             <option value="EDITAR">Editar Registro</option>
@@ -375,25 +439,38 @@
                     <p>Sube el reporte consolidado en formato PDF para revisión central</p>
                 </div>
             </header>
-            <section class="card" style="max-width: 600px; margin: 0 auto;">
-                <div class="card-body" style="text-align: center; padding: 40px 20px;">
-                    <i class="fas fa-file-pdf" style="font-size: 4rem; color: #ef4444; margin-bottom: 20px;"></i>
-                    <h3 style="margin-bottom: 20px; color: #1e293b;">Subir PDF del Día</h3>
+            <section class="card" style="max-width: 650px; margin: 0 auto;">
+                <div class="card-body" style="padding: 40px 30px;">
                     
-                    <div class="form-group" style="text-align: left; margin-bottom: 20px;">
-                        <label>Selecciona la Fecha correspondiente al archivo:</label>
-                        <input type="date" id="fechaCargaPdf" class="modern-input">
+                    <div class="upload-container">
+                        <div class="upload-dropzone" id="dropzonePdf" onclick="document.getElementById('archivoPdf').click()">
+                            <i class="fas fa-cloud-upload-alt upload-icon"></i>
+                            <h3 class="upload-title">Arrastra y suelta tu PDF aquí</h3>
+                            <p class="upload-desc">o haz clic para explorar en tu equipo (Máx 5MB)</p>
+                            <input type="file" id="archivoPdf" accept=".pdf" class="hidden">
+                        </div>
+                        
+                        <div id="fileInfoDisplay" class="file-info hidden">
+                            <i class="fas fa-file-pdf file-info-icon"></i>
+                            <span id="fileNameDisplay" class="file-name">archivo_seleccionado.pdf</span>
+                            <i class="fas fa-times-circle file-remove" id="btnRemoveFile" title="Quitar archivo"></i>
+                        </div>
                     </div>
 
-                    <div class="form-group" style="text-align: left; margin-bottom: 20px;">
-                        <label>Archivo PDF (Máx 5MB recomendado para localStorage):</label>
-                        <input type="file" id="archivoPdf" accept=".pdf" class="modern-input" style="padding: 10px; background: #f8fafc;">
+                    <div class="form-group" style="text-align: left; margin-top: 25px; margin-bottom: 25px;">
+                        <label style="font-size: 0.95rem;"><i class="fas fa-calendar-day"></i> Selecciona la Fecha correspondiente al archivo:</label>
+                        <input type="date" id="fechaCargaPdf" class="modern-input" style="padding: 12px;">
                     </div>
 
-                    <button class="btn btn-azul" id="btnSubirPdf" style="width: 100%;">
-                        <i class="fas fa-cloud-upload-alt"></i> Subir y Notificar
-                    </button>
-                    <p style="font-size: 0.8rem; color: #64748b; margin-top: 15px;">*Al subir el archivo, se notificará automáticamente a los administradores.</p>
+                    <div class="action-buttons-container" style="justify-content: space-between;">
+                        <button class="btn" id="btnPrevisualizarPdf" style="background: #475569; width: 48%; justify-content: center; display: none;">
+                            <i class="fas fa-eye"></i> Previsualizar
+                        </button>
+                        <button class="btn btn-azul" id="btnSubirPdf" style="width: 100%; justify-content: center;">
+                            <i class="fas fa-paper-plane"></i> Subir y Notificar
+                        </button>
+                    </div>
+                    <p style="font-size: 0.8rem; color: #64748b; margin-top: 15px; text-align: center;">*Al subir el archivo, se notificará automáticamente a los administradores.</p>
                 </div>
             </section>
         </div>
@@ -402,7 +479,7 @@
             <header class="main-header" style="padding: 2rem 0 1.5rem 0;">
                 <div class="header-title-area">
                     <h1>Repositorio Central de Archivos</h1>
-                    <p>Documentación organizada cronológicamente</p>
+                    <p>Documentación organizada lógicamente por sucursal</p>
                 </div>
             </header>
             <section class="card">
@@ -453,12 +530,27 @@
     <div class="modal-content">
         <div class="modal-header">
             <div style="display: flex; align-items: center; gap: 10px;">
-                <i class="fas fa-info-circle" style="color: #3b82f6; font-size: 1.5rem;"></i>
-                <h2 style="color: #0f172a; font-weight: 700; font-size: 1.3rem;">Detalles del Cierre</h2>
+                <i class="fas fa-info-circle" style="color: var(--accent); font-size: 1.5rem;"></i>
+                <h2 style="color: #0f172a; font-weight: 700; font-size: 1.3rem;">Detalles de la Transacción</h2>
             </div>
             <span class="close-modal" id="btnCerrarModal">&times;</span>
         </div>
         <div class="modal-body" id="modalDetallesBody"></div>
+    </div>
+</div>
+
+<div id="modalPreview" class="modal hidden">
+    <div class="modal-content" style="max-width: 900px; height: 90vh;">
+        <div class="modal-header" style="background: #0f172a; border-bottom: none;">
+            <div style="display: flex; align-items: center; gap: 10px;">
+                <i class="fas fa-file-pdf" style="color: #ef4444; font-size: 1.5rem;"></i>
+                <h2 style="color: white; font-weight: 600; font-size: 1.2rem;">Visualizador de Documentos</h2>
+            </div>
+            <span class="close-modal" id="btnCerrarPreview" style="color: white;">&times;</span>
+        </div>
+        <div class="modal-body" style="padding: 0; height: calc(100% - 60px); background: #334155;">
+            <iframe id="pdfPreviewFrame" src="" style="width: 100%; height: 100%; border: none;"></iframe>
+        </div>
     </div>
 </div>
 
