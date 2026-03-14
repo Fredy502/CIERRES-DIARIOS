@@ -32,6 +32,16 @@
         <p id="loginError" class="hidden" style="color: var(--danger); font-size: 0.85rem; margin-top: 15px; font-weight: bold;">
             ❌ Usuario o contraseña incorrectos
         </p>
+
+        <div style="margin-top: 25px; display: flex; flex-direction: column; gap: 10px;">
+            <button id="btnConsultarCambios" class="btn btn-verde" style="display: none; width: 100%; justify-content: center; background: rgba(5, 150, 105, 0.2); border-color: rgba(5, 150, 105, 0.5); color: #34d399; font-size:0.85rem; padding: 10px;">
+                <i class="fas fa-bell"></i> Bandeja de Notificaciones de Cuenta
+            </button>
+            
+            <button id="btnSolicitarCambioPass" class="btn btn-rojo" style="width: 100%; justify-content: center; background: rgba(220, 38, 38, 0.2); border-color: rgba(220, 38, 38, 0.5); color: #f87171; font-size:0.85rem; padding: 10px; transition: all 0.3s ease;">
+                <i class="fas fa-question-circle"></i> ¿Olvidaste tu contraseña o usuario?
+            </button>
+        </div>
     </div>
 </div>
 
@@ -54,6 +64,10 @@
                 <i class="fas fa-bell"></i>
                 <span class="badge-count" id="notifBadge">0</span>
             </div>
+
+            <button id="btnConsultarCambiosInterno" class="btn btn-verde" style="width: 100%; justify-content: center; background: rgba(5, 150, 105, 0.2); border-color: rgba(5, 150, 105, 0.5); color: #34d399; font-size:0.75rem; padding: 8px; margin-top: 15px;">
+                <i class="fas fa-key"></i> Novedades de Cuenta
+            </button>
         </div>
         <ul class="nav-tabs">
             <li class="nav-item active" id="navCaptura" data-tab="tab-captura">
@@ -74,8 +88,14 @@
             <li class="nav-item hidden" id="navRepositorio" data-tab="tab-repositorio">
                 <i class="fas fa-folder-tree"></i> <span>Repositorio General</span>
             </li>
+            <li class="nav-item hidden" id="navSolicitudes" data-tab="tab-solicitudes">
+                <i class="fas fa-envelope-open-text"></i> <span id="textNavSolicitudes">Solicitudes</span>
+            </li>
             <li class="nav-item hidden" id="navConfigNotif" data-tab="tab-config">
                 <i class="fas fa-cogs"></i> <span>Config. Notificaciones</span>
+            </li>
+            <li class="nav-item hidden" id="navUsuarios" data-tab="tab-usuarios">
+                <i class="fas fa-users-cog"></i> <span>Gestión Usuarios</span>
             </li>
         </ul>
         <div class="sidebar-footer">
@@ -95,7 +115,7 @@
                 </div>
                 <div class="global-selectors">
                     <div class="selector-group">
-                        <label><i class="fas fa-store"></i></label>
+                        <label style="font-weight: 700; font-size: 0.85rem;"><i class="fas fa-store"></i> SUCURSAL:</label>
                         <select id="sucursalSelect" class="modern-select">
                             <option value="1">CHIQUIMULA</option>
                             <option value="2">SAN NICOLAS 1</option>
@@ -108,7 +128,7 @@
                         </select>
                     </div>
                     <div class="selector-group">
-                        <label><i class="fas fa-calendar-day"></i></label>
+                        <label style="font-weight: 700; font-size: 0.85rem;"><i class="fas fa-calendar-day"></i> FECHA DE CIERRE:</label>
                         <input type="date" id="fechaInput" class="modern-input">
                     </div>
                 </div>
@@ -129,20 +149,6 @@
                                 <label>Fecha Recibido:</label>
                                 <input type="date" id="fechaRecibido" class="modern-input">
                             </div>
-                            <div class="form-group">
-                                <label>Recibo Inicio:</label>
-                                <div class="input-group">
-                                    <span id="prefixInicio" class="input-prefix"></span>
-                                    <input type="number" id="reciboInicioNum" class="modern-input" placeholder="Calculando..." min="1" disabled style="background-color: #e2e8f0; cursor: not-allowed; font-weight: bold;">
-                                </div>
-                            </div>
-                            <div class="form-group">
-                                <label>Recibo Final:</label>
-                                <div class="input-group">
-                                    <span id="prefixFinal" class="input-prefix"></span>
-                                    <input type="number" id="reciboFinalNum" class="modern-input" placeholder="100" min="1">
-                                </div>
-                            </div>
                             <div class="form-group full-width">
                                 <label>Notas de Observación:</label>
                                 <textarea id="notas" class="modern-input" rows="2" placeholder="Anomalías o aclaraciones..."></textarea>
@@ -160,19 +166,20 @@
                                 <table id="tablaPagos" class="modern-table">
                                     <thead>
                                         <tr>
-                                            <th width="5%"></th>
-                                            <th width="20%">Forma de Pago</th>
-                                            <th width="15%">Monto Cierre (Q)</th>
-                                            <th width="15%">Monto Físico (Q)</th>
-                                            <th width="15%">Documento</th>
-                                            <th width="15%">Fecha Doc.</th>
-                                            <th width="15%">Diferencia (Q)</th>
+                                            <th width="4%"></th>
+                                            <th width="15%">Forma de Pago</th>
+                                            <th width="18%">Banco</th>
+                                            <th width="12%">Monto Cierre (Q)</th>
+                                            <th width="12%">Monto Físico (Q)</th>
+                                            <th width="13%">Documento</th>
+                                            <th width="12%">Fecha Doc.</th>
+                                            <th width="14%">Diferencia (Q)</th>
                                         </tr>
                                     </thead>
                                     <tbody></tbody>
                                     <tfoot>
                                         <tr class="total-row">
-                                            <td colspan="2" class="text-right"><strong>TOTALES:</strong></td>
+                                            <td colspan="3" class="text-right"><strong>TOTALES:</strong></td>
                                             <td id="totalCierre" class="font-bold">0.00</td>
                                             <td id="totalFisico" class="font-bold">0.00</td>
                                             <td></td>
@@ -484,7 +491,71 @@
             </header>
             <section class="card">
                 <div class="card-body" id="treeViewContainer" style="padding: 20px; min-height: 400px;">
+                </div>
+            </section>
+        </div>
+
+        <div id="tab-solicitudes" class="tab-content hidden">
+            <header class="main-header" style="padding: 2rem 0 1.5rem 0;">
+                <div class="header-title-area">
+                    <h1 id="tituloSolicitudes">Gestión de Solicitudes</h1>
+                    <p id="subtituloSolicitudes">Historial y control de peticiones de modificación</p>
+                </div>
+            </header>
+            
+            <div style="display: flex; gap: 10px; margin-bottom: 15px; background: white; padding: 15px; border-radius: 8px; border: 1px solid var(--border); flex-wrap: wrap; align-items: flex-end; box-shadow: var(--shadow-sm);">
+                <div class="form-group" id="filtroSucursalReqContainer">
+                    <label>Sucursal:</label>
+                    <select id="filtroSucursalReq" class="modern-select">
+                        <option value="">Todas</option>
+                        <option value="CHIQUIMULA">CHIQUIMULA</option>
+                        <option value="SAN NICOLAS 1">SAN NICOLÁS 1</option>
+                        <option value="SIXTINO">SIXTINO</option>
+                        <option value="FRUTAL">FRUTAL</option>
+                        <option value="METRONORTE">METRONORTE</option>
+                        <option value="NARANJO">NARANJO</option>
+                        <option value="SAN NICOLAS 2">SAN NICOLÁS 2</option>
+                        <option value="PERI ROOSEVELT">PERI ROOSEVELT</option>
+                    </select>
+                </div>
+                <div class="form-group" id="filtroUsuarioReqContainer">
+                    <label>Usuario Solicitante:</label>
+                    <input type="text" id="filtroUsuarioReq" class="modern-input" placeholder="Buscar usuario...">
+                </div>
+                <div class="form-group">
+                    <label>Tipo de Solicitud:</label>
+                    <select id="filtroTipoReq" class="modern-select">
+                        <option value="">Todos</option>
+                        <option value="ELIMINAR">Eliminar</option>
+                        <option value="REEMPLAZAR">Reemplazar</option>
+                    </select>
+                </div>
+                <div class="form-group" style="display: flex; align-items: flex-end;">
+                    <button class="btn btn-azul" id="btnFiltrarReq" style="padding: 10px 15px;"><i class="fas fa-search"></i> Filtrar</button>
+                </div>
+            </div>
+
+            <section class="card">
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="modern-table" id="tablaSolicitudes">
+                            <thead>
+                                <tr>
+                                    <th>Fecha</th>
+                                    <th>Sucursal</th>
+                                    <th>Usuario</th>
+                                    <th>Tipo</th>
+                                    <th>Archivo Afectado</th>
+                                    <th>Descripción / Motivo</th>
+                                    <th>Estado</th>
+                                    <th>Mensaje Autorizador</th>
+                                    <th id="colAccionesReq">Acciones</th>
+                                </tr>
+                            </thead>
+                            <tbody></tbody>
+                        </table>
                     </div>
+                </div>
             </section>
         </div>
 
@@ -523,6 +594,59 @@
                 </div>
             </section>
         </div>
+
+        <div id="tab-usuarios" class="tab-content hidden">
+            <header class="main-header" style="padding: 2rem 0 1.5rem 0;">
+                <div class="header-title-area">
+                    <h1>Gestión de Usuarios</h1>
+                    <p>Administración central de cuentas y accesos del sistema</p>
+                </div>
+            </header>
+
+            <section class="card" style="margin-bottom: 2rem;">
+                <div class="card-header">
+                    <h2><i class="fas fa-key text-accent"></i> Solicitudes de Cambio de Contraseña</h2>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="modern-table" id="tablaSolicitudesPass">
+                            <thead>
+                                <tr>
+                                    <th>Fecha Solicitud</th>
+                                    <th>Usuario Actual</th>
+                                    <th>Nueva Contraseña Requerida</th>
+                                    <th>Acciones</th>
+                                </tr>
+                            </thead>
+                            <tbody></tbody>
+                        </table>
+                    </div>
+                </div>
+            </section>
+
+            <section class="card">
+                <div class="card-header">
+                    <h2><i class="fas fa-users text-accent"></i> Directorio de Usuarios y Accesos</h2>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="modern-table" id="tablaDirectorioUsuarios">
+                            <thead>
+                                <tr>
+                                    <th>Usuario</th>
+                                    <th>Contraseña</th>
+                                    <th>Rol / Privilegio</th>
+                                    <th>Sucursal / Asignación</th>
+                                    <th>Acciones</th>
+                                </tr>
+                            </thead>
+                            <tbody></tbody>
+                        </table>
+                    </div>
+                </div>
+            </section>
+        </div>
+        
     </main>
 </div>
 
