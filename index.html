@@ -15,7 +15,7 @@
 
 <div id="loginOverlay" class="login-overlay">
     <div class="login-box">
-        <img src="descarga.png" alt="GrupoDent" onerror="this.style.display='none'">
+        <img src="logogrupo.jpeg" alt="GrupoDent" onerror="this.style.display='none'">
         <h2>Control de Acceso</h2>
         <p>Ingrese sus credenciales para continuar</p>
         <div class="form-group" style="text-align: left; margin-bottom: 15px;">
@@ -37,7 +37,6 @@
             <button id="btnConsultarCambios" class="btn btn-verde" style="display: none; width: 100%; justify-content: center; background: rgba(5, 150, 105, 0.2); border-color: rgba(5, 150, 105, 0.5); color: #34d399; font-size:0.85rem; padding: 10px;">
                 <i class="fas fa-bell"></i> Bandeja de Notificaciones de Cuenta
             </button>
-            
             <button id="btnSolicitarCambioPass" class="btn btn-rojo" style="width: 100%; justify-content: center; background: rgba(220, 38, 38, 0.2); border-color: rgba(220, 38, 38, 0.5); color: #f87171; font-size:0.85rem; padding: 10px; transition: all 0.3s ease;">
                 <i class="fas fa-question-circle"></i> ¿Olvidaste tu contraseña o usuario?
             </button>
@@ -46,25 +45,22 @@
 </div>
 
 <div class="main-wrapper hidden" id="appContent">
-    
     <div class="notif-dropdown" id="notifDropdown">
         <div class="notif-header">
             <span><i class="fas fa-bell"></i> Notificaciones</span>
-            <i class="fas fa-times close-notif" style="cursor:pointer;" onclick="document.getElementById('notifDropdown').style.display='none'"></i>
+            <i class="fas fa-times close-notif" style="cursor:pointer;" id="btnCloseNotifDropdown"></i>
         </div>
         <ul class="notif-body" id="notifList"></ul>
     </div>
 
     <nav class="sidebar">
         <div class="sidebar-header">
-            <img src="descarga.png" alt="GrupoDent" onerror="this.style.display='none'" style="max-width: 90%; height: auto; margin: 0 auto; display: block; border-radius: 8px; background: white; padding: 5px;">
+            <img src="logogrupo.jpeg" alt="GrupoDent" onerror="this.style.display='none'" style="max-width: 90%; height: auto; margin: 0 auto; display: block; border-radius: 8px; background: white; padding: 5px;">
             <p id="displayUserLogueado" style="margin-top: 15px; font-size: 0.85rem; color: #bae6fd; font-weight: bold;"></p>
-            
             <div class="notification-bell hidden" id="btnCampanaNotif">
                 <i class="fas fa-bell"></i>
                 <span class="badge-count" id="notifBadge">0</span>
             </div>
-
             <button id="btnConsultarCambiosInterno" class="btn btn-verde" style="width: 100%; justify-content: center; background: rgba(5, 150, 105, 0.2); border-color: rgba(5, 150, 105, 0.5); color: #34d399; font-size:0.75rem; padding: 8px; margin-top: 15px;">
                 <i class="fas fa-key"></i> Novedades de Cuenta
             </button>
@@ -108,124 +104,116 @@
 
     <main class="content-container">
         <div id="tab-captura" class="tab-content active">
-            <header class="main-header" id="headerCaptura">
-                <div class="header-title-area">
-                    <h1>Panel de Cierres Diarios</h1>
-                    <p>Gestión de flujo de caja y conciliación de terminales</p>
-                </div>
-                <div class="global-selectors">
-                    <div class="selector-group">
-                        <label style="font-weight: 700; font-size: 0.85rem;"><i class="fas fa-store"></i> SUCURSAL:</label>
-                        <select id="sucursalSelect" class="modern-select">
-                            <option value="1">CHIQUIMULA</option>
-                            <option value="2">SAN NICOLAS 1</option>
-                            <option value="3">SIXTINO</option>
-                            <option value="4">FRUTAL</option>
-                            <option value="5">METRONORTE</option>
-                            <option value="6">NARANJO</option>
-                            <option value="7">SAN NICOLAS 2</option>
-                            <option value="8">PERI ROOSEVELT</option>
-                        </select>
+            <header class="main-header" id="headerCaptura" style="padding: 1.5rem 0 1rem 0;">
+                <div style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
+                    <div class="header-title-area">
+                        <h1 style="font-size: 1.8rem; margin:0;">Cierre Diario</h1>
+                        <p style="margin: 4px 0 0; font-size: 0.9rem;">Gestión de flujo de caja y conciliación</p>
                     </div>
-                    <div class="selector-group">
-                        <label style="font-weight: 700; font-size: 0.85rem;"><i class="fas fa-calendar-day"></i> FECHA DE CIERRE:</label>
-                        <input type="date" id="fechaInput" class="modern-input">
+                    <div class="global-selectors" style="padding: 8px 15px; border-radius: 10px;">
+                        <div class="selector-group">
+                            <label style="font-size: 0.75rem;"><i class="fas fa-store"></i> SUCURSAL:</label>
+                            <select id="sucursalSelect" class="modern-select compact-input" style="width: auto;">
+                                <option value="1">CHIQUIMULA</option>
+                                <option value="2">SAN NICOLAS 1</option>
+                                <option value="3">SIXTINO</option>
+                                <option value="4">FRUTAL</option>
+                                <option value="5">METRONORTE</option>
+                                <option value="6">NARANJO</option>
+                                <option value="7">SAN NICOLAS 2</option>
+                                <option value="8">PERI ROOSEVELT</option>
+                            </select>
+                        </div>
+                        <div class="selector-group">
+                            <label style="font-size: 0.75rem;"><i class="fas fa-calendar-day"></i> FECHA:</label>
+                            <input type="date" id="fechaInput" class="modern-input compact-input" style="width: auto;">
+                        </div>
                     </div>
                 </div>
             </header>
 
-            <div class="dashboard-grid">
-                <div class="forms-column">
-                    <section class="card">
-                        <div class="card-header">
-                            <h2><i class="fas fa-clipboard-list text-accent"></i> Encabezado de Control</h2>
-                        </div>
-                        <div class="card-body grid-form">
-                            <div class="form-group">
-                                <label>Usuario / Turno:</label>
-                                <select id="turnoSelect" class="modern-select"></select>
-                            </div>
-                            <div class="form-group">
-                                <label>Fecha Recibido:</label>
-                                <input type="date" id="fechaRecibido" class="modern-input">
-                            </div>
-                            <div class="form-group full-width">
-                                <label>Notas de Observación:</label>
-                                <textarea id="notas" class="modern-input" rows="2" placeholder="Anomalías o aclaraciones..."></textarea>
+            <div class="cierre-layout">
+                <div class="cierre-header-row">
+                    <div class="cierre-control-card">
+                        <div style="display:flex; align-items:center; gap: 12px; border-right: 1px solid var(--border); padding-right: 15px;">
+                            <i class="fas fa-clipboard-check" style="font-size: 1.8rem; color: var(--accent);"></i>
+                            <div>
+                                <h3 style="margin:0; font-size:0.9rem; color: var(--primary);">Control Cierre</h3>
+                                <span style="font-size:0.75rem; color: var(--secondary);">Registro Base</span>
                             </div>
                         </div>
-                    </section>
+                        <div class="compact-form-group">
+                            <label>Usuario / Turno:</label>
+                            <select id="turnoSelect" class="modern-select compact-input"></select>
+                        </div>
+                        <div class="compact-form-group">
+                            <label>Fecha de carga en el sistema:</label>
+                            <input type="date" id="fechaRecibido" class="modern-input compact-input">
+                        </div>
+                        <div class="compact-form-group" style="flex: 2;">
+                            <label>Notas de Observación:</label>
+                            <input type="text" id="notas" class="modern-input compact-input" placeholder="Anomalías o aclaraciones...">
+                        </div>
+                    </div>
 
-                    <section class="card">
-                        <div class="card-header flex-between">
-                            <h2><i class="fas fa-wallet text-accent"></i> Detalle de Documentación</h2>
-                            <button id="addFilaBtn" class="btn-add"><i class="fas fa-plus-circle"></i> Agregar Fila</button>
+                    <div class="cierre-chart-card">
+                        <div style="display: flex; flex-direction: column; gap: 4px; text-align: right;">
+                            <span style="font-size: 0.75rem; color: var(--secondary); font-weight: 700;">TOTAL SISTEMA</span>
+                            <strong id="displayTotalCierre" style="font-size: 1.25rem; color: var(--primary);">Q 0.00</strong>
+                            <span style="font-size: 0.75rem; color: var(--secondary); font-weight: 700; margin-top: 4px;">DIFERENCIA (FALTANTE / SOBRANTE)</span>
+                            <strong id="displayTotalDiff" style="font-size: 1.1rem; color: var(--danger);">Q 0.00</strong>
                         </div>
-                        <div class="card-body">
-                            <div class="table-responsive">
-                                <table id="tablaPagos" class="modern-table">
-                                    <thead>
-                                        <tr>
-                                            <th width="4%"></th>
-                                            <th width="15%">Forma de Pago</th>
-                                            <th width="18%">Banco</th>
-                                            <th width="12%">Monto Cierre (Q)</th>
-                                            <th width="12%">Monto Físico (Q)</th>
-                                            <th width="13%">Documento</th>
-                                            <th width="12%">Fecha Doc.</th>
-                                            <th width="14%">Diferencia (Q)</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody></tbody>
-                                    <tfoot>
-                                        <tr class="total-row">
-                                            <td colspan="3" class="text-right"><strong>TOTALES:</strong></td>
-                                            <td id="totalCierre" class="font-bold">0.00</td>
-                                            <td id="totalFisico" class="font-bold">0.00</td>
-                                            <td></td>
-                                            <td></td> <td id="totalDiferencia" class="font-bold">0.00</td>
-                                        </tr>
-                                    </tfoot>
-                                </table>
-                            </div>
+                        <div style="width: 75px; height: 75px; position: relative;">
+                            <canvas id="cierreChart"></canvas>
                         </div>
-                    </section>
+                    </div>
                 </div>
 
-                <div class="analysis-column">
-                    <section class="card chart-card">
-                        <div class="card-header">
-                            <h2><i class="fas fa-chart-bar text-accent"></i> Análisis de Discrepancia</h2>
-                        </div>
-                        <div class="card-body">
-                            <canvas id="resumenGrafico"></canvas>
-                        </div>
-                    </section>
+                <div class="cierre-table-card">
+                    <div class="card-header flex-between" style="padding: 12px 20px; border-bottom: 1px solid var(--border);">
+                        <h2 style="font-size: 1.1rem; margin:0;"><i class="fas fa-wallet text-accent"></i> Detalle de Documentación</h2>
+                        <button id="addFilaBtn" class="btn-add" style="padding: 6px 12px;"><i class="fas fa-plus-circle"></i> Agregar Fila</button>
+                    </div>
+                    
+                    <div class="table-container-scroll">
+                        <table id="tablaPagos" class="modern-table compact-table">
+                            <thead>
+                                <tr>
+                                    <th width="4%"></th>
+                                    <th width="15%">Forma de Pago</th>
+                                    <th width="18%">Banco</th>
+                                    <th width="12%">Monto Cierre (Q)</th>
+                                    <th width="12%">Monto Físico (Q)</th>
+                                    <th width="15%">Documento</th>
+                                    <th width="12%">Fecha Doc.</th>
+                                    <th width="12%" style="text-align: right;">Diferencia (Q)</th>
+                                </tr>
+                            </thead>
+                            <tbody></tbody>
+                        </table>
+                    </div>
 
-                    <section class="card">
-                        <div class="card-header">
-                            <h2><i class="fas fa-list-check text-accent"></i> Resumen Consolidado</h2>
+                    <div class="table-footer-actions">
+                        <div style="display: flex; gap: 20px; font-weight: 700; color: var(--primary); font-size: 1.1rem; align-items: center;">
+                            <span><i class="fas fa-calculator" style="color:var(--secondary);"></i> TOTALES:</span>
+                            <span>Cierre: <span id="totalCierre" style="color:var(--primary);">0.00</span></span>
+                            <span>Físico: <span id="totalFisico" style="color:var(--success);">0.00</span></span>
+                            <span>Dif: <span id="totalDiferencia" style="color:var(--danger);">0.00</span></span>
                         </div>
-                        <div class="card-body">
-                            <div id="resumenConsolidadoContainer" class="summary-list"></div>
+                        <div class="action-buttons-container">
+                            <button class="btn btn-verde" id="btnExportarExcel" style="padding: 10px 15px; font-size: 0.85rem;">
+                                <i class="fas fa-file-excel"></i> EXPORTAR
+                            </button>
+                            <button class="btn btn-rojo" id="btnImprimirPdf" style="padding: 10px 15px; font-size: 0.85rem;">
+                                <i class="fas fa-file-pdf"></i> PDF
+                            </button>
+                            <button class="btn btn-azul" id="btnGuardarCierre" style="padding: 10px 15px; font-size: 0.85rem;">
+                                <i class="fas fa-cloud-upload-alt"></i> GUARDAR CIERRE
+                            </button>
                         </div>
-                    </section>
+                    </div>
                 </div>
             </div>
-
-            <footer class="sticky-actions">
-                <div class="action-buttons-container">
-                    <button class="btn btn-azul" id="btnGuardarCierre">
-                        <i class="fas fa-cloud-upload-alt"></i> GUARDAR CIERRE DEL DÍA
-                    </button>
-                    <button class="btn btn-verde" id="btnExportarExcel">
-                        <i class="fas fa-file-excel"></i> EXPORTAR EXCEL
-                    </button>
-                    <button class="btn btn-rojo" id="btnImprimirPdf">
-                        <i class="fas fa-file-pdf"></i> IMPRIMIR REPORTE PDF
-                    </button>
-                </div>
-            </footer>
         </div>
 
         <div id="tab-database" class="tab-content hidden">
@@ -322,14 +310,21 @@
             <header class="main-header" style="padding: 2rem 0 1.5rem 0;">
                 <div class="header-title-area">
                     <h1>Resumen Mensual Contable</h1>
-                    <p>Agrupación de datos por sucursal y forma de pago para cuadre contra cuentas de mayor</p>
+                    <p>Agrupación de datos por sucursal, usuario y fechas para cuadre contra cuentas de mayor</p>
                 </div>
             </header>
             <div style="display: flex; gap: 10px; margin-bottom: 15px; background: white; padding: 15px; border-radius: 8px; border: 1px solid var(--border); flex-wrap: wrap; align-items: flex-end; box-shadow: var(--shadow-sm);">
+                
                 <div class="form-group">
-                    <label><i class="fas fa-calendar-alt"></i> Mes a conciliar:</label>
-                    <input type="month" id="filtroMesResumen" class="modern-input">
+                    <label><i class="fas fa-calendar-day"></i> Fecha Inicio:</label>
+                    <input type="date" id="filtroResumenInicio" class="modern-input">
                 </div>
+                
+                <div class="form-group">
+                    <label><i class="fas fa-calendar-day"></i> Fecha Fin:</label>
+                    <input type="date" id="filtroResumenFin" class="modern-input">
+                </div>
+
                 <div class="form-group">
                     <label><i class="fas fa-store"></i> Filtrar Sucursal:</label>
                     <select id="filtroSucursalResumen" class="modern-select">
@@ -344,6 +339,14 @@
                         <option value="PERI ROOSEVELT">PERI ROOSEVELT</option>
                     </select>
                 </div>
+
+                <div class="form-group">
+                    <label><i class="fas fa-user"></i> Filtrar Usuario:</label>
+                    <select id="filtroUsuarioResumen" class="modern-select">
+                        <option value="">TODOS LOS USUARIOS</option>
+                    </select>
+                </div>
+
                 <div class="form-group" style="display: flex; gap: 5px;">
                     <button class="btn btn-azul" id="btnGenerarResumen" style="padding: 10px 15px;"><i class="fas fa-sync-alt"></i> Procesar Cuadre</button>
                     <button class="btn btn-verde" id="btnExportarResumenExcel" style="padding: 10px 15px;"><i class="fas fa-file-excel"></i> Descargar Excel</button>
@@ -364,7 +367,7 @@
                                 </tr>
                             </thead>
                             <tbody>
-                                <tr><td colspan="5" style="text-align: center; color: #64748b; padding:40px;"><i class="fas fa-chart-pie" style="font-size:3rem; display:block; margin-bottom:15px; color:#cbd5e1;"></i>Seleccione un mes y presione "Procesar Cuadre"</td></tr>
+                                <tr><td colspan="5" style="text-align: center; color: #64748b; padding:40px;"><i class="fas fa-chart-pie" style="font-size:3rem; display:block; margin-bottom:15px; color:#cbd5e1;"></i>Seleccione filtros y presione "Procesar Cuadre"</td></tr>
                             </tbody>
                             <tfoot id="tfootResumenMensual">
                             </tfoot>
@@ -388,9 +391,17 @@
             <div style="display: flex; gap: 10px; margin-bottom: 15px; background: white; padding: 15px; border-radius: 8px; border: 1px solid var(--border); flex-wrap: wrap; align-items: flex-end; justify-content: space-between; box-shadow: var(--shadow-sm);">
                 <div style="display: flex; gap: 10px; flex-wrap: wrap;">
                     <div class="form-group">
-                        <label><i class="fas fa-search"></i> Buscar detalle o usuario:</label>
-                        <input type="text" id="filtroTextoAuditoria" class="modern-input" placeholder="Ej. user03 o SIXTINO...">
+                        <label><i class="fas fa-search"></i> Buscar detalle:</label>
+                        <input type="text" id="filtroTextoAuditoria" class="modern-input" placeholder="Ej. SIXTINO...">
                     </div>
+                    
+                    <div class="form-group">
+                        <label><i class="fas fa-user-tag"></i> Filtrar por Usuario:</label>
+                        <select id="filtroUsuarioAuditoria" class="modern-select">
+                            <option value="">Todos los usuarios</option>
+                        </select>
+                    </div>
+
                     <div class="form-group">
                         <label><i class="fas fa-filter"></i> Filtrar por Acción:</label>
                         <select id="filtroAccionAuditoria" class="modern-select">
@@ -448,27 +459,23 @@
             </header>
             <section class="card" style="max-width: 650px; margin: 0 auto;">
                 <div class="card-body" style="padding: 40px 30px;">
-                    
                     <div class="upload-container">
-                        <div class="upload-dropzone" id="dropzonePdf" onclick="document.getElementById('archivoPdf').click()">
+                        <div class="upload-dropzone" id="dropzonePdf">
                             <i class="fas fa-cloud-upload-alt upload-icon"></i>
                             <h3 class="upload-title">Arrastra y suelta tu PDF aquí</h3>
-                            <p class="upload-desc">o haz clic para explorar en tu equipo (Máx 5MB)</p>
+                            <p class="upload-desc">o haz clic para explorar en tu equipo (Máx 1MB para BD Gratuita)</p>
                             <input type="file" id="archivoPdf" accept=".pdf" class="hidden">
                         </div>
-                        
                         <div id="fileInfoDisplay" class="file-info hidden">
                             <i class="fas fa-file-pdf file-info-icon"></i>
                             <span id="fileNameDisplay" class="file-name">archivo_seleccionado.pdf</span>
                             <i class="fas fa-times-circle file-remove" id="btnRemoveFile" title="Quitar archivo"></i>
                         </div>
                     </div>
-
                     <div class="form-group" style="text-align: left; margin-top: 25px; margin-bottom: 25px;">
                         <label style="font-size: 0.95rem;"><i class="fas fa-calendar-day"></i> Selecciona la Fecha correspondiente al archivo:</label>
                         <input type="date" id="fechaCargaPdf" class="modern-input" style="padding: 12px;">
                     </div>
-
                     <div class="action-buttons-container" style="justify-content: space-between;">
                         <button class="btn" id="btnPrevisualizarPdf" style="background: #475569; width: 48%; justify-content: center; display: none;">
                             <i class="fas fa-eye"></i> Previsualizar
@@ -477,7 +484,6 @@
                             <i class="fas fa-paper-plane"></i> Subir y Notificar
                         </button>
                     </div>
-                    <p style="font-size: 0.8rem; color: #64748b; margin-top: 15px; text-align: center;">*Al subir el archivo, se notificará automáticamente a los administradores.</p>
                 </div>
             </section>
         </div>
@@ -502,7 +508,6 @@
                     <p id="subtituloSolicitudes">Historial y control de peticiones de modificación</p>
                 </div>
             </header>
-            
             <div style="display: flex; gap: 10px; margin-bottom: 15px; background: white; padding: 15px; border-radius: 8px; border: 1px solid var(--border); flex-wrap: wrap; align-items: flex-end; box-shadow: var(--shadow-sm);">
                 <div class="form-group" id="filtroSucursalReqContainer">
                     <label>Sucursal:</label>
@@ -602,7 +607,6 @@
                     <p>Administración central de cuentas y accesos del sistema</p>
                 </div>
             </header>
-
             <section class="card" style="margin-bottom: 2rem;">
                 <div class="card-header">
                     <h2><i class="fas fa-key text-accent"></i> Solicitudes de Cambio de Contraseña</h2>
@@ -623,7 +627,6 @@
                     </div>
                 </div>
             </section>
-
             <section class="card">
                 <div class="card-header">
                     <h2><i class="fas fa-users text-accent"></i> Directorio de Usuarios y Accesos</h2>
@@ -682,6 +685,6 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.31/jspdf.plugin.autotable.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
-<script src="script.js"></script>
+<script type="module" src="script.js"></script>
 </body>
 </html>
