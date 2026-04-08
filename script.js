@@ -14,7 +14,6 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 
-// Función puente: Mantiene tu código local intacto y sube una copia a la nube
 async function guardarEnFirebase(key, data) {
     localStorage.setItem(key, JSON.stringify(data)); 
     try {
@@ -82,14 +81,15 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     let currentUser = null;
 
+    // MEJORA 1: Turnos y nomenclaturas corregidas y estandarizadas (EJ: USUARIO PROVISIONAL)
     const datosUsuarios = {
         "1": { "ICALDERO01": "CH1-", "USUARIO PROVISIONAL": "CN3-" },
-        "2": { "RSNXAMXX01": "SN17-", "RSNXPMXX01": "SN18-", "RELIASXX01": "SN19-", "UPROVISI02": "SN13-" },
+        "2": { "RSNXAMXX01": "SN17-", "RSNXPMXX01": "SN18-", "RELIASXX01": "SN19-", "USUARIO PROVISIONAL": "SN13-" },
         "3": { "RSIXTINO01": "SX6-", "CSXXXXXX01": "SX8-", "USUARIO PROVISIONAL": "SX4-" },
         "4": { "RFRXAMXX01": "FT17-", "RFRXPMXX01": "FT18-", "LRIVERAX01": "FT19-", "CFRXXXXX01": "FT27-", "DMORALES01": "FT12-" },
         "5": { "RMETRONO01": "MN12-", "CMNXXXXX01": "MN14-", "ASISTENTE MN": "MN13-", "USUARIO PROVISIONAL": "MN1-" },
-        "6": { "RNRXAMXX01": "NR1-", "RNRXPMXX01": "NR2-", "ASISTENTE NR": "NR4-", "USUARIO PROFESIONAL": "NR3-" },
-        "7": { "RNIXAMXX01": "NI1-", "RNIXPMXX01": "NI2-", "UPROVISI07": "NI3-" },
+        "6": { "RNRXAMXX01": "NR1-", "RNRXPMXX01": "NR2-", "ASISTENTE NR": "NR4-", "USUARIO PROVISIONAL": "NR3-" },
+        "7": { "RNIXAMXX01": "NI1-", "RNIXPMXX01": "NI2-", "USUARIO PROVISIONAL": "NI3-" },
         "8": { "RPEXAMXX01": "PR1-", "RPEXPMXX01": "PR2-", "USUARIO PROVISIONAL": "PR3-" }
     };
 
@@ -204,7 +204,6 @@ document.addEventListener('DOMContentLoaded', async () => {
             activarTab('tab-carga', 'navCarga');
             document.getElementById('fechaCargaPdf').value = new Date().toISOString().split('T')[0];
 
-            // Poblar turnos en Carga PDF
             const turnoCargaPdf = document.getElementById('turnoCargaPdf');
             if (turnoCargaPdf && currentUser.sucursal) {
                 turnoCargaPdf.innerHTML = '';
@@ -258,7 +257,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     document.getElementById('btnMarcarLeidas')?.addEventListener('click', () => {
         let notifs = JSON.parse(localStorage.getItem('notificacionesEstuconta')) || [];
         notifs.forEach(n => {
-             // Solo marcar las que el usuario puede ver
              if (currentUser.role === 'master' || n.target === currentUser.user || n.usuarioActor === currentUser.user) {
                  n.leido = true;
              }
@@ -268,7 +266,6 @@ document.addEventListener('DOMContentLoaded', async () => {
         registrarAuditoria("NOTIFICACIONES", "Marcó sus notificaciones como leídas.");
     });
 
-    // Función mejorada con target (audiencia)
     function agregarNotificacion(mensaje, tipo = 'info', target = 'master') {
         const notifs = JSON.parse(localStorage.getItem('notificacionesEstuconta')) || [];
         const usuarioActor = currentUser ? currentUser.user : 'SISTEMA';
@@ -281,10 +278,8 @@ document.addEventListener('DOMContentLoaded', async () => {
         if(!currentUser) return;
         const notifs = JSON.parse(localStorage.getItem('notificacionesEstuconta')) || [];
         
-        // Filtrar notificaciones según el rol
         const misNotifs = notifs.filter(n => {
-            if (currentUser.role === 'master') return true; // Master ve todo
-            // Los demás ven las suyas (actores o destino)
+            if (currentUser.role === 'master') return true; 
             if (n.target === currentUser.user || n.usuarioActor === currentUser.user) return true;
             return false;
         });
@@ -320,7 +315,6 @@ document.addEventListener('DOMContentLoaded', async () => {
                     `;
                     li.onclick = () => {
                         n.leido = true;
-                        // Guardamos el estado global
                         const idx = notifs.findIndex(not => not.id === n.id);
                         if(idx !== -1) notifs[idx].leido = true;
                         guardarEnFirebase('notificacionesEstuconta', notifs);
@@ -333,7 +327,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
 
 
-    // --- 4. CARGA PDF Y PREVISUALIZADOR (DRAG & DROP AÑADIDO) ---
+    // --- 4. CARGA PDF Y PREVISUALIZADOR ---
     const archivoPdf = document.getElementById('archivoPdf');
     const fileInfoDisplay = document.getElementById('fileInfoDisplay');
     const fileNameDisplay = document.getElementById('fileNameDisplay');
@@ -353,7 +347,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 const previewCargaCard = document.getElementById('previewCargaCard');
                 const iframePreviewCarga = document.getElementById('iframePreviewCarga');
                 if(previewCargaCard && iframePreviewCarga) {
-                    iframePreviewCarga.src = archivoSeleccionadoData + "#toolbar=1&navpanes=0"; // Zoom permitido
+                    iframePreviewCarga.src = archivoSeleccionadoData + "#toolbar=1&navpanes=0"; 
                     previewCargaCard.classList.remove('hidden');
                 }
                 registrarAuditoria("CARGA ARCHIVO", `El usuario seleccionó y previsualizó el archivo: ${file.name}`);
@@ -366,7 +360,6 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     archivoPdf?.addEventListener('change', (e) => procesarArchivoPdf(e.target.files[0]));
 
-    // Eventos Drag and Drop
     dropzonePdf?.addEventListener('dragover', (e) => { 
         e.preventDefault(); 
         dropzonePdf.classList.add('dragover'); 
@@ -406,7 +399,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         repo.push({
             id: Date.now(),
             sucursal: currentUser.sucursal,
-            turno: turnoSel ? turnoSel.value : 'N/A', // Guarda el turno elegido
+            turno: turnoSel ? turnoSel.value : 'N/A', 
             fecha: fecha,
             fechaSubida: new Date().toLocaleString(),
             fechaCargaISO: isoHoy,
@@ -416,7 +409,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         guardarEnFirebase('repoArchivos', repo);
         
         registrarAuditoria("SUBIDA EXITOSA", `Sucursal ${currentUser.sucursal} cargó archivo PDF (Turno: ${turnoSel?turnoSel.value:''}) correspondiente al cierre del ${fecha}`);
-        agregarNotificacion(`Sucursal ${currentUser.sucursal.toUpperCase()} cargó su documento del día ${fecha}`, 'info', 'master');
+        agregarNotificacion(`Sucursal ${currentUser.sucursal.toUpperCase()} cargó su documento del día ${fecha} (Turno: ${turnoSel?turnoSel.value:''})`, 'info', 'master');
 
         Swal.fire('Éxito', 'Documento subido correctamente al repositorio', 'success');
         
@@ -434,7 +427,6 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     window.verDocumentoRepositorio = function(base64, noToolbar = false) {
         let srcUrl = base64;
-        // Permite la barra de herramientas para zoom en el visor
         if (!srcUrl.includes('#toolbar=')) {
             srcUrl += noToolbar ? '#toolbar=0' : '#toolbar=1&navpanes=0'; 
         } else if (!noToolbar) {
@@ -472,7 +464,6 @@ document.addEventListener('DOMContentLoaded', async () => {
                 let sName = item.sucursal.toUpperCase();
                 let datePart = item.fecha || 'Sin Fecha';
                 let dObj = new Date(datePart);
-                // Extrae mes y año para agrupar (ej. "abril 2026")
                 let mesAnio = isNaN(dObj) ? 'Otros' : dObj.toLocaleString('es-ES', { month: 'long', year: 'numeric' }).toUpperCase();
                 
                 if(agrupado[sName]) {
@@ -507,7 +498,6 @@ document.addEventListener('DOMContentLoaded', async () => {
             
             if(!isEmpty) {
                 const bodyDiv = sucDiv.querySelector('.repo-content-body');
-                // Ordenar meses (sencillo por ahora, se listan conforme se leyeron)
                 mesesKeys.sort().reverse().forEach(mes => {
                     const mesDiv = document.createElement('div');
                     mesDiv.innerHTML = `<h4 style="font-size:0.85rem; color:var(--secondary); border-bottom:1px solid var(--border); padding-bottom:4px; margin:10px 0 5px 0;"><i class="fas fa-calendar-alt"></i> ${mes}</h4><ul style="list-style: none; padding: 0; margin: 0;"></ul>`;
@@ -537,9 +527,10 @@ document.addEventListener('DOMContentLoaded', async () => {
                             `;
                         }
 
+                        // MEJORA: Mostrar visualmente a qué turno pertenece este PDF
                         li.innerHTML = `
                             <div style="flex:1;">
-                                <span style="font-size:0.85rem; font-weight:600; color:var(--primary); display:block;"><i class="fas fa-file-pdf text-danger"></i> Cierre_${file.fecha}.pdf</span>
+                                <span style="font-size:0.85rem; font-weight:600; color:var(--primary); display:block;"><i class="fas fa-file-pdf text-danger"></i> Cierre_${file.fecha} (${file.turno || 'N/A'}).pdf</span>
                                 <span style="font-size:0.7rem; color:var(--secondary);"><i class="far fa-clock"></i> Subido: ${file.fechaSubida}</span>
                             </div>
                             <div style="display:flex; gap:5px;">
@@ -741,6 +732,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
     sucursalSelect?.addEventListener('change', actualizarUsuarios);
 
+    // MEJORA 2: Lógica rediseñada para soportar múltiples PDFs al día según el Turno exacto
     function verificarPdfRepositorio() {
         const selectElement = document.getElementById('sucursalSelect');
         const fInput = document.getElementById('fechaInput');
@@ -748,12 +740,15 @@ document.addEventListener('DOMContentLoaded', async () => {
         const fRecibido = document.getElementById('fechaRecibido');
         const pdfContainer = document.getElementById('inlinePdfContainer');
         const pdfFrame = document.getElementById('inlinePdfFrame');
+        const turnoSel = document.getElementById('turnoSelect');
 
         if (!selectElement || !fInput || !statusDiv) return;
 
         const sucursalNombre = selectElement.options[selectElement.selectedIndex].text;
         const fechaVal = fInput.value;
+        const turnoVal = turnoSel ? turnoSel.value : '';
 
+        // Reset UI
         pdfContainer.style.display = 'none';
         pdfFrame.src = '';
         fRecibido.removeAttribute('readonly');
@@ -761,66 +756,71 @@ document.addEventListener('DOMContentLoaded', async () => {
         fRecibido.style.cursor = '';
         fRecibido.value = '';
 
-        if(turnoSelect) {
-            turnoSelect.disabled = false;
-            turnoSelect.style.backgroundColor = '';
-        }
-
         if (!fechaVal || !sucursalNombre) {
             statusDiv.style.display = 'none';
             return;
         }
 
         const repo = JSON.parse(localStorage.getItem('repoArchivos')) || [];
-        const match = repo.find(r => r.sucursal.toUpperCase() === sucursalNombre.toUpperCase() && r.fecha === fechaVal);
+        // Filtra todos los PDFs que existan para esa sucursal en ese día exacto
+        const matches = repo.filter(r => r.sucursal.toUpperCase() === sucursalNombre.toUpperCase() && r.fecha === fechaVal);
 
         statusDiv.style.display = 'flex';
 
-        if (match) {
-            statusDiv.style.background = 'rgba(5, 150, 105, 0.08)';
-            statusDiv.style.border = '1px dashed var(--success)';
-            statusDiv.innerHTML = `
-                <div>
-                    <span style="color: var(--success); font-weight: 600;"><i class="fas fa-check-circle"></i> Documento PDF enlazado exitosamente (${fechaVal}). Turno: ${match.turno || 'N/A'}</span>
-                </div>
-            `;
+        if (matches.length > 0) {
+            // Busca coincidencia exacta con el Turno seleccionado
+            let exactMatch = matches.find(m => m.turno === turnoVal);
             
-            // Auto asignar y bloquear Turno detectado en el PDF
-            if (match.turno && turnoSelect) {
-                let options = Array.from(turnoSelect.options).map(o => o.value);
-                if(options.includes(match.turno)) {
-                    turnoSelect.value = match.turno;
-                }
-                turnoSelect.disabled = true;
-                turnoSelect.style.backgroundColor = '#f1f5f9';
+            // Fallback: si hay solo 1 PDF subido sin especificar turno (historial antiguo), enlazarlo.
+            if (!exactMatch && matches.length === 1 && (!matches[0].turno || matches[0].turno === 'N/A')) {
+                exactMatch = matches[0];
             }
 
-            if (match.fechaCargaISO) {
-                fRecibido.value = match.fechaCargaISO;
-            } else {
-                const parts = match.fechaSubida.split(',')[0].split('/');
-                if(parts.length === 3) {
-                    const isoD = `${parts[2]}-${parts[1].padStart(2, '0')}-${parts[0].padStart(2, '0')}`;
-                    fRecibido.value = isoD;
+            if (exactMatch) {
+                statusDiv.style.background = 'rgba(5, 150, 105, 0.08)';
+                statusDiv.style.border = '1px dashed var(--success)';
+                statusDiv.innerHTML = `
+                    <div>
+                        <span style="color: var(--success); font-weight: 600;"><i class="fas fa-check-circle"></i> Documento PDF enlazado exitosamente (${fechaVal}). Turno: ${exactMatch.turno || 'N/A'}</span>
+                    </div>
+                `;
+
+                if (exactMatch.fechaCargaISO) {
+                    fRecibido.value = exactMatch.fechaCargaISO;
                 } else {
-                    fRecibido.value = new Date().toISOString().split('T')[0];
+                    const parts = exactMatch.fechaSubida.split(',')[0].split('/');
+                    if(parts.length === 3) {
+                        const isoD = `${parts[2]}-${parts[1].padStart(2, '0')}-${parts[0].padStart(2, '0')}`;
+                        fRecibido.value = isoD;
+                    } else {
+                        fRecibido.value = new Date().toISOString().split('T')[0];
+                    }
                 }
-            }
-            fRecibido.setAttribute('readonly', 'true');
-            fRecibido.style.backgroundColor = '#f1f5f9';
-            fRecibido.style.cursor = 'not-allowed';
+                fRecibido.setAttribute('readonly', 'true');
+                fRecibido.style.backgroundColor = '#f1f5f9';
+                fRecibido.style.cursor = 'not-allowed';
 
-            pdfContainer.style.display = 'flex';
-            let srcUrl = match.fileData;
-            // Quitamos #toolbar=0 y ponemos #toolbar=1 para permitir Zoom
-            if (!srcUrl.includes('#toolbar=')) {
-                srcUrl += '#toolbar=1&navpanes=0'; 
+                pdfContainer.style.display = 'flex';
+                let srcUrl = exactMatch.fileData;
+                if (!srcUrl.includes('#toolbar=')) {
+                    srcUrl += '#toolbar=1&navpanes=0'; 
+                } else {
+                    srcUrl = srcUrl.replace('#toolbar=0', '#toolbar=1&navpanes=0');
+                }
+                pdfFrame.src = srcUrl;
+
+                registrarAuditoria("AUTO-DETECCIÓN PDF", `El sistema enlazó automáticamente el PDF de ${sucursalNombre} para el día ${fechaVal} (Turno: ${exactMatch.turno})`);
             } else {
-                srcUrl = srcUrl.replace('#toolbar=0', '#toolbar=1&navpanes=0');
+                // Hay PDFs para ese día, pero no corresponden al turno actual que el usuario visualiza
+                const turnosCargados = matches.map(m => m.turno || 'N/A').join(', ');
+                statusDiv.style.background = 'rgba(245, 158, 11, 0.08)';
+                statusDiv.style.border = '1px dashed var(--warning)';
+                statusDiv.innerHTML = `
+                    <div>
+                        <span style="color: #d97706; font-weight: 600;"><i class="fas fa-info-circle"></i> Hay documento(s) en el sistema para los turnos: <strong>${turnosCargados}</strong>. Cambie el Selector de Turno para visualizarlo o cargue el faltante.</span>
+                    </div>
+                `;
             }
-            pdfFrame.src = srcUrl;
-
-            registrarAuditoria("AUTO-DETECCIÓN PDF", `El sistema enlazó automáticamente el PDF de ${sucursalNombre} para el día ${fechaVal}`);
         } else {
             statusDiv.style.background = 'rgba(220, 38, 38, 0.05)';
             statusDiv.style.border = '1px dashed rgba(220, 38, 38, 0.4)';
@@ -831,11 +831,16 @@ document.addEventListener('DOMContentLoaded', async () => {
             `;
         }
     }
+
     document.getElementById('fechaInput')?.addEventListener('change', () => {
         verificarPdfRepositorio();
         registrarAuditoria("CAMBIO FECHA", `Cambió fecha del Cierre Diario a: ${document.getElementById('fechaInput').value}`);
     });
 
+    // Nuevo disparador para cuando el usuario cambia el turno manualmente y así traiga el PDF correcto
+    document.getElementById('turnoSelect')?.addEventListener('change', () => {
+        verificarPdfRepositorio();
+    });
 
     // --- PANEL FLOTANTE DE BOLETAS ---
     const panelBoletas = document.getElementById('panelBoletas');
@@ -1045,6 +1050,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         const selectElement = document.getElementById('sucursalSelect');
         const sucursalNombre = selectElement.options[selectElement.selectedIndex].text;
         const fechaCierreInput = document.getElementById('fechaInput').value;
+        const turnoActual = document.getElementById('turnoSelect').value;
         
         if(!fechaCierreInput) {
             return Swal.fire('Error', 'Debe seleccionar la fecha del cierre.', 'error');
@@ -1053,11 +1059,12 @@ document.addEventListener('DOMContentLoaded', async () => {
         let historial = JSON.parse(localStorage.getItem('historialCierresEstuconta')) || [];
         
         if (!window.cierreEnEdicionId) {
-            const existeCierre = historial.find(c => c.sucursal.toUpperCase() === sucursalNombre.toUpperCase() && c.fechaCierre === fechaCierreInput);
+            // MEJORA 3: Incluye el turno en la validación para permitir guardar Turno AM y Turno PM el mismo día sin chocar
+            const existeCierre = historial.find(c => c.sucursal.toUpperCase() === sucursalNombre.toUpperCase() && c.fechaCierre === fechaCierreInput && c.usuario === turnoActual);
             if (existeCierre) {
                 return Swal.fire({
                     title: 'Cierre Duplicado Detectado',
-                    html: `El sistema detectó que ya se ha guardado un cierre previo para <strong>${sucursalNombre}</strong> con fecha <strong>${fechaCierreInput}</strong>.<br><br>No se permite duplicar información. Si necesita modificarlo, por favor hágalo desde el Historial.`,
+                    html: `El sistema detectó que ya se ha guardado un cierre previo para <strong>${sucursalNombre}</strong> con fecha <strong>${fechaCierreInput}</strong> y Turno <strong>${turnoActual}</strong>.<br><br>No se permite duplicar información. Si necesita modificarlo, por favor hágalo desde el Historial.`,
                     icon: 'warning',
                     confirmButtonText: 'Entendido'
                 });
@@ -1142,14 +1149,13 @@ document.addEventListener('DOMContentLoaded', async () => {
         if (window.cierreEnEdicionId) {
             const index = historial.findIndex(x => x.id === window.cierreEnEdicionId);
             if(index !== -1) {
-                // Notificar al master sobre la edición en detalle
                 agregarNotificacion(
                     `El usuario ${currentUser.user} modificó el cierre de ${sucursalNombre} (${fechaCierreInput}). Anterior: Q${historial[index].totalCierre} -> Nuevo: Q${document.getElementById('totalCierre').textContent}`, 
                     'alerta', 
                     'master'
                 );
 
-                historial[index].usuario = document.getElementById('turnoSelect').value;
+                historial[index].usuario = turnoActual;
                 historial[index].fechaCierre = fechaCierreInput;
                 historial[index].fechaRecibido = document.getElementById('fechaRecibido').value;
                 historial[index].notas = document.getElementById('notas').value;
@@ -1167,7 +1173,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 id: Date.now(), 
                 fechaGuardado: new Date().toLocaleString(),
                 sucursal: sucursalNombre,
-                usuario: document.getElementById('turnoSelect').value,
+                usuario: turnoActual,
                 fechaCierre: fechaCierreInput,
                 fechaRecibido: document.getElementById('fechaRecibido').value,
                 notas: document.getElementById('notas').value,
@@ -1187,17 +1193,12 @@ document.addEventListener('DOMContentLoaded', async () => {
         cargarDatosDiaActual();
         document.getElementById('fechaRecibido').value = '';
         document.getElementById('notas').value = '';
-        if(turnoSelect) {
-            turnoSelect.disabled = false;
-            turnoSelect.style.backgroundColor = '';
-        }
         cargarHistorialBD(); 
     });
 
 
     // --- 7. HISTORIAL BASE DE DATOS ---
     
-    // Filtro dinámico Sucursal -> Usuario
     document.getElementById('filtroSucursal')?.addEventListener('change', (e) => {
         const fUser = document.getElementById('filtroUsuario');
         if(!fUser) return;
@@ -1288,13 +1289,14 @@ document.addEventListener('DOMContentLoaded', async () => {
         const c = historial.find(x => x.id === id);
         if(!c) return;
         
-        const matchPdf = repo.find(r => r.sucursal.toUpperCase() === c.sucursal.toUpperCase() && r.fecha === c.fechaCierre);
+        // Carga exactamente el PDF del usuario/turno que generó este cierre (para evitar PDFs cruzados)
+        const matchPdf = repo.find(r => r.sucursal.toUpperCase() === c.sucursal.toUpperCase() && r.fecha === c.fechaCierre && r.turno === c.usuario);
         
         let pdfSection = '';
         if (matchPdf) {
             pdfSection = `
                 <div style="margin-top: 25px; text-align: center; background: rgba(5, 150, 105, 0.08); padding: 15px; border-radius: 8px; border: 1px dashed var(--success);">
-                    <p style="margin: 0 0 12px 0; color: var(--success); font-weight: 600;"><i class="fas fa-check-circle"></i> Documento PDF adjunto disponible en el Repositorio (${c.fechaCierre})</p>
+                    <p style="margin: 0 0 12px 0; color: var(--success); font-weight: 600;"><i class="fas fa-check-circle"></i> Documento PDF adjunto disponible en el Repositorio (${c.fechaCierre} - Turno: ${matchPdf.turno})</p>
                     <button class="btn btn-verde" style="margin: 0 auto; justify-content: center; font-size: 0.95rem; padding: 12px 25px;" onclick="window.verDocumentoRepositorio('${matchPdf.fileData}', false)">
                         <i class="fas fa-file-pdf"></i> Visualizar Archivo
                     </button>
@@ -1303,7 +1305,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         } else {
              pdfSection = `
                 <div style="margin-top: 25px; text-align: center; background: rgba(220, 38, 38, 0.05); padding: 15px; border-radius: 8px; border: 1px dashed rgba(220, 38, 38, 0.4);">
-                    <p style="margin: 0; color: var(--danger); font-size: 0.9rem;"><i class="fas fa-exclamation-triangle"></i> No hay un documento PDF consolidado cargado en el repositorio para la fecha y sucursal indicadas.</p>
+                    <p style="margin: 0; color: var(--danger); font-size: 0.9rem;"><i class="fas fa-exclamation-triangle"></i> No hay un documento PDF consolidado cargado en el repositorio para el turno y fecha indicados.</p>
                 </div>
             `;
         }
@@ -1504,7 +1506,6 @@ document.addEventListener('DOMContentLoaded', async () => {
             (c.detalles || []).forEach(d => {
                 const sys = parseFloat(d.montoCierre || 0);
                 const fis = parseFloat(d.montoFisico || 0);
-                // Filtrar las que tengan 0 en ambos para que no estorben
                 if (sys === 0 && fis === 0) return;
 
                 const llaveSucursal = c.sucursal;
@@ -1534,7 +1535,6 @@ document.addEventListener('DOMContentLoaded', async () => {
         let totGlobalSys = 0, totGlobalFis = 0;
         
         llavesSucursales.forEach(sucursal => {
-            // Cabecera visual por sucursal
             tbody.innerHTML += `
                 <tr class="group-header">
                     <td colspan="5" style="background:#e2e8f0; font-weight:bold; color:var(--primary); text-transform:uppercase; font-size:0.95rem; border-top:2px solid var(--border); padding: 12px 15px;">
@@ -1557,7 +1557,6 @@ document.addEventListener('DOMContentLoaded', async () => {
                     </tr>
                 `;
             });
-            // Subtotal de sucursal
             const diffSuc = tSucSys - tSucFis;
             tbody.innerHTML += `
                 <tr style="background:#f8fafc; font-style:italic; font-size:0.9rem;">
@@ -1626,7 +1625,6 @@ document.addEventListener('DOMContentLoaded', async () => {
         if(!tbody) return;
         tbody.innerHTML = '';
         
-        // Filtro de Privacidad: Solo el master ve todo, los demás ven las suyas
         if(currentUser.role !== 'master') {
             reqs = reqs.filter(r => r.usuario === currentUser.user);
         }
@@ -1653,7 +1651,6 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     window.resolverSol = async function(idx, nuevoEstado) {
         let allReqs = JSON.parse(localStorage.getItem('solicitudesEstuconta')) || [];
-        // Al indexar, buscamos el id real en vez del índice del filter
         let reqsFiltradas = allReqs;
         if(currentUser.role !== 'master') reqsFiltradas = allReqs.filter(r => r.usuario === currentUser.user);
         const solicitud = reqsFiltradas[idx];
@@ -1667,7 +1664,6 @@ document.addEventListener('DOMContentLoaded', async () => {
         guardarEnFirebase('solicitudesEstuconta', allReqs);
         cargarSolicitudes();
         registrarAuditoria("RESOLVER SOLICITUD", `El Master ${nuevoEstado.toLowerCase()} la solicitud de ${allReqs[realIdx].usuario}`);
-        // Notificamos directo al creador de la solicitud
         agregarNotificacion(`Su solicitud de ${allReqs[realIdx].tipo} fue ${nuevoEstado}`, nuevoEstado==='Aprobado'?'info':'alerta', allReqs[realIdx].usuario);
     }
 
