@@ -59,7 +59,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     await sincronizarDesdeFirebase();
 
-    // --- 1. BASE DE DATOS DE USUARIOS (DINÁMICA) ---
+    // --- 1. BASE DE DATOS DE USUARIOS Y MAPEOS ---
     const defaultUsersDB = {
         "GD.user01": { pass: "Ax7#Pq29Lm", role: "master" },
         "GD.user02": { pass: "R8v$Kp41Tx", role: "master" },
@@ -81,6 +81,23 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
 
     let currentUser = null;
+
+    const datosUsuarios = {
+        "1": { "ICALDERO01": "CH1-", "USUARIO PROVISIONAL": "CN3-" },
+        "2": { "RSNXAMXX01": "SN17-", "RSNXPMXX01": "SN18-", "RELIASXX01": "SN19-", "UPROVISI02": "SN13-" },
+        "3": { "RSIXTINO01": "SX6-", "CSXXXXXX01": "SX8-", "USUARIO PROVISIONAL": "SX4-" },
+        "4": { "RFRXAMXX01": "FT17-", "RFRXPMXX01": "FT18-", "LRIVERAX01": "FT19-", "CFRXXXXX01": "FT27-", "DMORALES01": "FT12-" },
+        "5": { "RMETRONO01": "MN12-", "CMNXXXXX01": "MN14-", "ASISTENTE MN": "MN13-", "USUARIO PROVISIONAL": "MN1-" },
+        "6": { "RNRXAMXX01": "NR1-", "RNRXPMXX01": "NR2-", "ASISTENTE NR": "NR4-", "USUARIO PROFESIONAL": "NR3-" },
+        "7": { "RNIXAMXX01": "NI1-", "RNIXPMXX01": "NI2-", "UPROVISI07": "NI3-" },
+        "8": { "RPEXAMXX01": "PR1-", "RPEXPMXX01": "PR2-", "USUARIO PROVISIONAL": "PR3-" }
+    };
+
+    const sucursalMapInv = {
+        "CHIQUIMULA": "1", "SAN NICOLAS 1": "2", "SIXTINO": "3",
+        "FRUTAL": "4", "METRONORTE": "5", "NARANJO": "6",
+        "SAN NICOLAS 2": "7", "PERI ROOSEVELT": "8"
+    };
 
     // --- REFERENCIAS DOM ---
     const loginOverlay = document.getElementById('loginOverlay');
@@ -186,6 +203,18 @@ document.addEventListener('DOMContentLoaded', async () => {
             document.getElementById('btnCampanaNotif').classList.remove('hidden'); 
             activarTab('tab-carga', 'navCarga');
             document.getElementById('fechaCargaPdf').value = new Date().toISOString().split('T')[0];
+
+            // Poblar turnos en Carga PDF
+            const turnoCargaPdf = document.getElementById('turnoCargaPdf');
+            if (turnoCargaPdf && currentUser.sucursal) {
+                turnoCargaPdf.innerHTML = '';
+                const idSuc = sucursalMapInv[currentUser.sucursal.toUpperCase()];
+                if (idSuc && datosUsuarios[idSuc]) {
+                    Object.keys(datosUsuarios[idSuc]).forEach(u => {
+                        turnoCargaPdf.innerHTML += `<option value="${u}">${u}</option>`;
+                    });
+                }
+            }
         }
     }
 
@@ -212,7 +241,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         });
     });
 
-    // --- 3. NOTIFICACIONES GLOBALES REDISEÑADAS ---
+    // --- 3. NOTIFICACIONES INTELIGENTES ---
     const notifDropdown = document.getElementById('notifDropdown');
     const notifBadge = document.getElementById('notifBadge');
     const notifList = document.getElementById('notifList');
@@ -228,15 +257,22 @@ document.addEventListener('DOMContentLoaded', async () => {
     
     document.getElementById('btnMarcarLeidas')?.addEventListener('click', () => {
         let notifs = JSON.parse(localStorage.getItem('notificacionesEstuconta')) || [];
-        notifs.forEach(n => n.leido = true);
+        notifs.forEach(n => {
+             // Solo marcar las que el usuario puede ver
+             if (currentUser.role === 'master' || n.target === currentUser.user || n.usuarioActor === currentUser.user) {
+                 n.leido = true;
+             }
+        });
         guardarEnFirebase('notificacionesEstuconta', notifs);
         actualizarNotificaciones();
-        registrarAuditoria("NOTIFICACIONES", "Marcó todas las notificaciones como leídas.");
+        registrarAuditoria("NOTIFICACIONES", "Marcó sus notificaciones como leídas.");
     });
 
-    function agregarNotificacion(mensaje, tipo = 'info') {
+    // Función mejorada con target (audiencia)
+    function agregarNotificacion(mensaje, tipo = 'info', target = 'master') {
         const notifs = JSON.parse(localStorage.getItem('notificacionesEstuconta')) || [];
-        notifs.unshift({ id: Date.now(), mensaje, tipo, leido: false, fecha: new Date().toLocaleString() });
+        const usuarioActor = currentUser ? currentUser.user : 'SISTEMA';
+        notifs.unshift({ id: Date.now(), mensaje, tipo, leido: false, fecha: new Date().toLocaleString(), target, usuarioActor });
         guardarEnFirebase('notificacionesEstuconta', notifs);
         actualizarNotificaciones();
     }
@@ -244,7 +280,16 @@ document.addEventListener('DOMContentLoaded', async () => {
     function actualizarNotificaciones() {
         if(!currentUser) return;
         const notifs = JSON.parse(localStorage.getItem('notificacionesEstuconta')) || [];
-        const noLeidas = notifs.filter(n => !n.leido).length;
+        
+        // Filtrar notificaciones según el rol
+        const misNotifs = notifs.filter(n => {
+            if (currentUser.role === 'master') return true; // Master ve todo
+            // Los demás ven las suyas (actores o destino)
+            if (n.target === currentUser.user || n.usuarioActor === currentUser.user) return true;
+            return false;
+        });
+
+        const noLeidas = misNotifs.filter(n => !n.leido).length;
         
         if (notifBadge) {
             notifBadge.textContent = noLeidas;
@@ -253,14 +298,14 @@ document.addEventListener('DOMContentLoaded', async () => {
         
         if (notifList && notifEmpty) {
             notifList.innerHTML = '';
-            if (notifs.length === 0) {
+            if (misNotifs.length === 0) {
                 notifList.style.display = 'none';
                 notifEmpty.style.display = 'block';
             } else {
                 notifList.style.display = 'block';
                 notifEmpty.style.display = 'none';
                 
-                notifs.slice(0, 15).forEach(n => {
+                misNotifs.slice(0, 15).forEach(n => {
                     const li = document.createElement('li');
                     let icon = n.tipo === 'alerta' ? 'fa-exclamation-triangle text-warning' : (n.tipo === 'peligro' ? 'fa-times-circle text-danger' : 'fa-info-circle text-accent');
                     li.innerHTML = `
@@ -275,6 +320,9 @@ document.addEventListener('DOMContentLoaded', async () => {
                     `;
                     li.onclick = () => {
                         n.leido = true;
+                        // Guardamos el estado global
+                        const idx = notifs.findIndex(not => not.id === n.id);
+                        if(idx !== -1) notifs[idx].leido = true;
                         guardarEnFirebase('notificacionesEstuconta', notifs);
                         actualizarNotificaciones();
                     };
@@ -285,7 +333,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
 
 
-    // --- 4. CARGA PDF Y PREVISUALIZADOR INTEGRADO ---
+    // --- 4. CARGA PDF Y PREVISUALIZADOR (DRAG & DROP AÑADIDO) ---
     const archivoPdf = document.getElementById('archivoPdf');
     const fileInfoDisplay = document.getElementById('fileInfoDisplay');
     const fileNameDisplay = document.getElementById('fileNameDisplay');
@@ -293,8 +341,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     const dropzonePdf = document.getElementById('dropzonePdf');
     let archivoSeleccionadoData = null; 
 
-    archivoPdf?.addEventListener('change', (e) => {
-        const file = e.target.files[0];
+    function procesarArchivoPdf(file) {
         if (file && file.type === "application/pdf") {
             const reader = new FileReader();
             reader.onload = function(event) {
@@ -306,7 +353,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 const previewCargaCard = document.getElementById('previewCargaCard');
                 const iframePreviewCarga = document.getElementById('iframePreviewCarga');
                 if(previewCargaCard && iframePreviewCarga) {
-                    iframePreviewCarga.src = archivoSeleccionadoData + "#toolbar=0";
+                    iframePreviewCarga.src = archivoSeleccionadoData + "#toolbar=1&navpanes=0"; // Zoom permitido
                     previewCargaCard.classList.remove('hidden');
                 }
                 registrarAuditoria("CARGA ARCHIVO", `El usuario seleccionó y previsualizó el archivo: ${file.name}`);
@@ -315,6 +362,23 @@ document.addEventListener('DOMContentLoaded', async () => {
         } else {
             Swal.fire('Error', 'Por favor selecciona un archivo PDF válido.', 'error');
         }
+    }
+
+    archivoPdf?.addEventListener('change', (e) => procesarArchivoPdf(e.target.files[0]));
+
+    // Eventos Drag and Drop
+    dropzonePdf?.addEventListener('dragover', (e) => { 
+        e.preventDefault(); 
+        dropzonePdf.classList.add('dragover'); 
+    });
+    dropzonePdf?.addEventListener('dragleave', (e) => { 
+        e.preventDefault(); 
+        dropzonePdf.classList.remove('dragover'); 
+    });
+    dropzonePdf?.addEventListener('drop', (e) => {
+        e.preventDefault();
+        dropzonePdf.classList.remove('dragover');
+        if(e.dataTransfer.files.length > 0) procesarArchivoPdf(e.dataTransfer.files[0]);
     });
 
     btnRemoveFile?.addEventListener('click', () => {
@@ -333,6 +397,8 @@ document.addEventListener('DOMContentLoaded', async () => {
         if (!archivoSeleccionadoData) return Swal.fire('Error', 'Debes adjuntar un archivo PDF', 'error');
         const fecha = document.getElementById('fechaCargaPdf').value;
         if (!fecha) return Swal.fire('Error', 'Debes indicar la fecha del cierre', 'error');
+        const turnoSel = document.getElementById('turnoCargaPdf');
+        if (turnoSel && !turnoSel.value) return Swal.fire('Error', 'Debes seleccionar el turno', 'error');
 
         const repo = JSON.parse(localStorage.getItem('repoArchivos')) || [];
         const isoHoy = new Date().toISOString().split('T')[0];
@@ -340,6 +406,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         repo.push({
             id: Date.now(),
             sucursal: currentUser.sucursal,
+            turno: turnoSel ? turnoSel.value : 'N/A', // Guarda el turno elegido
             fecha: fecha,
             fechaSubida: new Date().toLocaleString(),
             fechaCargaISO: isoHoy,
@@ -348,8 +415,8 @@ document.addEventListener('DOMContentLoaded', async () => {
 
         guardarEnFirebase('repoArchivos', repo);
         
-        registrarAuditoria("SUBIDA EXITOSA", `Sucursal ${currentUser.sucursal} cargó archivo PDF correspondiente al cierre del ${fecha}`);
-        agregarNotificacion(`Sucursal ${currentUser.sucursal.toUpperCase()} cargó su documento del día ${fecha}`, 'info');
+        registrarAuditoria("SUBIDA EXITOSA", `Sucursal ${currentUser.sucursal} cargó archivo PDF (Turno: ${turnoSel?turnoSel.value:''}) correspondiente al cierre del ${fecha}`);
+        agregarNotificacion(`Sucursal ${currentUser.sucursal.toUpperCase()} cargó su documento del día ${fecha}`, 'info', 'master');
 
         Swal.fire('Éxito', 'Documento subido correctamente al repositorio', 'success');
         
@@ -367,7 +434,12 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     window.verDocumentoRepositorio = function(base64, noToolbar = false) {
         let srcUrl = base64;
-        if (noToolbar && !srcUrl.includes('#toolbar=0')) srcUrl += '#toolbar=0';
+        // Permite la barra de herramientas para zoom en el visor
+        if (!srcUrl.includes('#toolbar=')) {
+            srcUrl += noToolbar ? '#toolbar=0' : '#toolbar=1&navpanes=0'; 
+        } else if (!noToolbar) {
+            srcUrl = srcUrl.replace('#toolbar=0', '#toolbar=1&navpanes=0');
+        }
         document.getElementById('pdfPreviewFrame').src = srcUrl;
         document.getElementById('modalPreview').classList.remove('hidden');
         registrarAuditoria("VISUALIZADOR PDF", `Visualizó archivo PDF extendido.`);
@@ -379,7 +451,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     });
 
 
-    // --- REPOSITORIO DE ARCHIVOS PROFESIONAL (CON ROLES) ---
+    // --- 5. REPOSITORIO DE ARCHIVOS PROFESIONAL AGRUPADO (MES/AÑO) ---
     const todasLasSucursales = [
         "CHIQUIMULA", "SAN NICOLAS 1", "SIXTINO", "FRUTAL", 
         "METRONORTE", "NARANJO", "SAN NICOLAS 2", "PERI ROOSEVELT"
@@ -393,12 +465,20 @@ document.addEventListener('DOMContentLoaded', async () => {
         container.innerHTML = '';
         
         const agrupado = {};
-        todasLasSucursales.forEach(s => agrupado[s] = []);
+        todasLasSucursales.forEach(s => agrupado[s] = {});
         
         repo.forEach(item => {
             if(item.sucursal) {
                 let sName = item.sucursal.toUpperCase();
-                if(agrupado[sName]) agrupado[sName].push(item);
+                let datePart = item.fecha || 'Sin Fecha';
+                let dObj = new Date(datePart);
+                // Extrae mes y año para agrupar (ej. "abril 2026")
+                let mesAnio = isNaN(dObj) ? 'Otros' : dObj.toLocaleString('es-ES', { month: 'long', year: 'numeric' }).toUpperCase();
+                
+                if(agrupado[sName]) {
+                    if(!agrupado[sName][mesAnio]) agrupado[sName][mesAnio] = [];
+                    agrupado[sName][mesAnio].push(item);
+                }
             }
         });
 
@@ -409,55 +489,66 @@ document.addEventListener('DOMContentLoaded', async () => {
             sucDiv.className = "repo-folder-card";
             sucDiv.style.cssText = "background: #f8fafc; border: 1px solid var(--border); border-radius: 12px; overflow: hidden;";
             
-            const count = agrupado[suc].length;
-            const isEmpty = count === 0;
+            const mesesKeys = Object.keys(agrupado[suc]);
+            let totalArchivos = 0;
+            mesesKeys.forEach(m => totalArchivos += agrupado[suc][m].length);
+            
+            const isEmpty = totalArchivos === 0;
 
             sucDiv.innerHTML = `
                 <div style="background: var(--primary); color: white; padding: 12px 15px; display: flex; justify-content: space-between; align-items: center; cursor: pointer;" onclick="this.nextElementSibling.classList.toggle('hidden')">
                     <h3 style="margin:0; font-size: 1rem;"><i class="fas ${isEmpty ? 'fa-folder' : 'fa-folder-open'} text-accent"></i> ${suc}</h3>
-                    <span style="background: rgba(255,255,255,0.2); font-size: 0.75rem; padding: 3px 8px; border-radius: 10px;">${count} archivos</span>
+                    <span style="background: rgba(255,255,255,0.2); font-size: 0.75rem; padding: 3px 8px; border-radius: 10px;">${totalArchivos} archivos</span>
                 </div>
-                <div class="${isEmpty ? 'hidden' : ''}" style="padding: 10px;">
-                    ${isEmpty ? `<p style="text-align:center; color: var(--secondary); font-size: 0.85rem; margin: 15px 0;">Carpeta vacía</p>` : `<ul style="list-style: none; padding: 0; margin: 0;"></ul>`}
+                <div class="${isEmpty ? 'hidden' : ''} repo-content-body" style="padding: 10px;">
+                    ${isEmpty ? `<p style="text-align:center; color: var(--secondary); font-size: 0.85rem; margin: 15px 0;">Carpeta vacía</p>` : ``}
                 </div>
             `;
             
             if(!isEmpty) {
-                const ul = sucDiv.querySelector('ul');
-                agrupado[suc].sort((a,b) => new Date(b.fecha) - new Date(a.fecha)).forEach(file => {
-                    const li = document.createElement('li');
-                    li.style.cssText = "padding: 10px; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; background: white; margin-bottom: 5px; border-radius: 8px;";
+                const bodyDiv = sucDiv.querySelector('.repo-content-body');
+                // Ordenar meses (sencillo por ahora, se listan conforme se leyeron)
+                mesesKeys.sort().reverse().forEach(mes => {
+                    const mesDiv = document.createElement('div');
+                    mesDiv.innerHTML = `<h4 style="font-size:0.85rem; color:var(--secondary); border-bottom:1px solid var(--border); padding-bottom:4px; margin:10px 0 5px 0;"><i class="fas fa-calendar-alt"></i> ${mes}</h4><ul style="list-style: none; padding: 0; margin: 0;"></ul>`;
                     
-                    let botonesHTML = '';
-                    if(currentUser.role === 'master') {
-                        botonesHTML = `
-                            <button class="btn-icon" title="Ver" onclick="window.verDocumentoRepositorio('${file.fileData}', false)"><i class="fas fa-eye text-accent"></i></button>
-                            <button class="btn-icon" title="Descargar" onclick="window.descargarArchivoBase64('${file.fileData}', 'Cierre_${file.fecha}_${suc}.pdf')"><i class="fas fa-download text-success"></i></button>
-                            <button class="btn-icon" title="Reemplazar" onclick="window.reemplazarArchivoMaster(${file.id})"><i class="fas fa-sync-alt text-warning"></i></button>
-                            <button class="btn-icon" title="Eliminar" onclick="window.eliminarArchivoMaster(${file.id})"><i class="fas fa-trash text-danger"></i></button>
-                        `;
-                    } else if (currentUser.role === 'regular') {
-                        botonesHTML = `
-                            <button class="btn-icon" title="Ver" onclick="window.verDocumentoRepositorio('${file.fileData}', false)"><i class="fas fa-eye text-accent"></i></button>
-                            <button class="btn-icon" title="Descargar" onclick="window.descargarArchivoBase64('${file.fileData}', 'Cierre_${file.fecha}_${suc}.pdf')"><i class="fas fa-download text-success"></i></button>
-                        `;
-                    } else if (currentUser.role === 'sucursal') {
-                        botonesHTML = `
-                            <button class="btn-icon" title="Ver (Solo lectura)" onclick="window.verDocumentoRepositorio('${file.fileData}', true)"><i class="fas fa-eye text-accent"></i></button>
-                            <button class="btn-icon" title="Solicitar Eliminar" onclick="window.solicitarEliminarArchivo(${file.id}, '${file.fecha}')"><i class="fas fa-times-circle text-danger"></i></button>
-                        `;
-                    }
+                    const ul = mesDiv.querySelector('ul');
+                    agrupado[suc][mes].sort((a,b) => new Date(b.fecha) - new Date(a.fecha)).forEach(file => {
+                        const li = document.createElement('li');
+                        li.style.cssText = "padding: 10px; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; background: white; margin-bottom: 5px; border-radius: 8px;";
+                        
+                        let botonesHTML = '';
+                        if(currentUser.role === 'master') {
+                            botonesHTML = `
+                                <button class="btn-icon" title="Ver" onclick="window.verDocumentoRepositorio('${file.fileData}', false)"><i class="fas fa-eye text-accent"></i></button>
+                                <button class="btn-icon" title="Descargar" onclick="window.descargarArchivoBase64('${file.fileData}', 'Cierre_${file.fecha}_${suc}.pdf')"><i class="fas fa-download text-success"></i></button>
+                                <button class="btn-icon" title="Reemplazar" onclick="window.reemplazarArchivoMaster(${file.id})"><i class="fas fa-sync-alt text-warning"></i></button>
+                                <button class="btn-icon" title="Eliminar" onclick="window.eliminarArchivoMaster(${file.id})"><i class="fas fa-trash text-danger"></i></button>
+                            `;
+                        } else if (currentUser.role === 'regular') {
+                            botonesHTML = `
+                                <button class="btn-icon" title="Ver" onclick="window.verDocumentoRepositorio('${file.fileData}', false)"><i class="fas fa-eye text-accent"></i></button>
+                                <button class="btn-icon" title="Descargar" onclick="window.descargarArchivoBase64('${file.fileData}', 'Cierre_${file.fecha}_${suc}.pdf')"><i class="fas fa-download text-success"></i></button>
+                            `;
+                        } else if (currentUser.role === 'sucursal') {
+                            botonesHTML = `
+                                <button class="btn-icon" title="Ver (Solo lectura)" onclick="window.verDocumentoRepositorio('${file.fileData}', true)"><i class="fas fa-eye text-accent"></i></button>
+                                <button class="btn-icon" title="Solicitar Eliminar" onclick="window.solicitarEliminarArchivo(${file.id}, '${file.fecha}')"><i class="fas fa-times-circle text-danger"></i></button>
+                            `;
+                        }
 
-                    li.innerHTML = `
-                        <div style="flex:1;">
-                            <span style="font-size:0.85rem; font-weight:600; color:var(--primary); display:block;"><i class="fas fa-file-pdf text-danger"></i> Cierre_${file.fecha}.pdf</span>
-                            <span style="font-size:0.7rem; color:var(--secondary);"><i class="far fa-clock"></i> Subido: ${file.fechaSubida}</span>
-                        </div>
-                        <div style="display:flex; gap:5px;">
-                            ${botonesHTML}
-                        </div>
-                    `;
-                    ul.appendChild(li);
+                        li.innerHTML = `
+                            <div style="flex:1;">
+                                <span style="font-size:0.85rem; font-weight:600; color:var(--primary); display:block;"><i class="fas fa-file-pdf text-danger"></i> Cierre_${file.fecha}.pdf</span>
+                                <span style="font-size:0.7rem; color:var(--secondary);"><i class="far fa-clock"></i> Subido: ${file.fechaSubida}</span>
+                            </div>
+                            <div style="display:flex; gap:5px;">
+                                ${botonesHTML}
+                            </div>
+                        `;
+                        ul.appendChild(li);
+                    });
+                    bodyDiv.appendChild(mesDiv);
                 });
             }
             container.appendChild(sucDiv);
@@ -493,7 +584,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                     guardarEnFirebase('repoArchivos', repo);
                     renderizarArbolRepositorio();
                     registrarAuditoria("REEMPLAZO ARCHIVO", `El Master reemplazó el archivo PDF con ID: ${id}`);
-                    agregarNotificacion(`El usuario ${currentUser.user} reemplazó un documento del repositorio.`, 'alerta');
+                    agregarNotificacion(`El usuario ${currentUser.user} reemplazó un documento del repositorio.`, 'alerta', 'master');
                     Swal.fire('Éxito', 'Archivo reemplazado correctamente', 'success');
                 }
             };
@@ -526,18 +617,18 @@ document.addEventListener('DOMContentLoaded', async () => {
             reqs.push({id: Date.now(), fecha: new Date().toLocaleDateString(), sucursal: currentUser.sucursal, usuario: currentUser.user, tipo: 'Eliminación Archivo PDF', archivoAfectado: `Cierre_${fecha}.pdf`, descripcion: motivo, estado: 'Pendiente'});
             guardarEnFirebase('solicitudesEstuconta', reqs);
             registrarAuditoria("SOLICITUD CREADA", `Se solicitó la eliminación del PDF de fecha ${fecha}. Razón: ${motivo}`);
-            agregarNotificacion(`La sucursal ${currentUser.sucursal} solicitó eliminar un PDF.`, 'alerta');
+            agregarNotificacion(`La sucursal ${currentUser.sucursal} solicitó eliminar un PDF.`, 'alerta', 'master');
             Swal.fire('Enviado', 'Solicitud enviada al Master exitosamente.', 'success');
         }
     };
 
-    // --- MEJORA AUDITORÍA (Se agregó isoDate para filtros de fecha precisos) ---
+    // --- MEJORA AUDITORÍA ---
     function registrarAuditoria(accion, detalle) {
         if (!currentUser && accion !== "ERROR SESIÓN" && accion !== "INTENTO FALLIDO") return;
         const auditoria = JSON.parse(localStorage.getItem('auditoriaEstuconta')) || [];
         auditoria.unshift({
             fecha: new Date().toLocaleString(),
-            isoDate: new Date().toISOString().split('T')[0], // Añadido para mejor filtrado
+            isoDate: new Date().toISOString().split('T')[0], 
             usuario: currentUser ? currentUser.user : 'SISTEMA', 
             rol: currentUser ? currentUser.role : 'sistema', 
             accion: accion, 
@@ -552,7 +643,6 @@ document.addEventListener('DOMContentLoaded', async () => {
         const tbody = document.querySelector('#tablaAuditoria tbody');
         if(!tbody) return;
 
-        // --- FILTROS DE AUDITORÍA ---
         const fInicio = document.getElementById('filtroAuditoriaInicio')?.value;
         const fFin = document.getElementById('filtroAuditoriaFin')?.value;
         const fSucursal = document.getElementById('filtroAuditoriaSucursal')?.value.toLowerCase();
@@ -564,14 +654,10 @@ document.addEventListener('DOMContentLoaded', async () => {
             filtrados = filtrados.filter(a => {
                 let iso = a.isoDate;
                 if (!iso) {
-                    // Fallback para registros viejos
                     let datePart = a.fecha.split(',')[0].trim();
                     let parts = datePart.split('/');
                     if (parts.length === 3) {
-                        let year = parts[2];
-                        let month = parts[1].padStart(2, '0');
-                        let day = parts[0].padStart(2, '0');
-                        iso = `${year}-${month}-${day}`;
+                        iso = `${parts[2]}-${parts[1].padStart(2, '0')}-${parts[0].padStart(2, '0')}`;
                     } else {
                         try { iso = new Date(datePart).toISOString().split('T')[0]; } 
                         catch(e) { iso = '1970-01-01'; }
@@ -597,7 +683,6 @@ document.addEventListener('DOMContentLoaded', async () => {
                 a.detalle.toLowerCase().includes(fDetalle)
             );
         }
-        // ----------------------------------
 
         tbody.innerHTML = '';
 
@@ -622,7 +707,6 @@ document.addEventListener('DOMContentLoaded', async () => {
         });
     }
 
-    // --- EVENTOS DE LOS BOTONES DE FILTRO (NUEVO) ---
     document.getElementById('btnFiltrarAuditoria')?.addEventListener('click', () => {
         window.cargarAuditoria();
         registrarAuditoria("FILTRO AUDITORÍA", "Aplicó filtros de búsqueda en la tabla de Auditoría");
@@ -644,17 +728,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     const turnoSelect = document.getElementById('turnoSelect');
     const fechaInput = document.getElementById('fechaInput');
     const tablaPagosBody = document.querySelector('#tablaPagos tbody');
-
-    const datosUsuarios = {
-        "1": { "ICALDERO01": "CH1-", "USUARIO PROVISIONAL": "CN3-" },
-        "2": { "RSNXAMXX01": "SN17-", "RSNXPMXX01": "SN18-", "RELIASXX01": "SN19-", "UPROVISI02": "SN13-" },
-        "3": { "RSIXTINO01": "SX6-", "CSXXXXXX01": "SX8-", "USUARIO PROVISIONAL": "SX4-" },
-        "4": { "RFRXAMXX01": "FT17-", "RFRXPMXX01": "FT18-", "LRIVERAX01": "FT19-", "CFRXXXXX01": "FT27-", "DMORALES01": "FT12-" },
-        "5": { "RMETRONO01": "MN12-", "CMNXXXXX01": "MN14-", "ASISTENTE MN": "MN13-", "USUARIO PROVISIONAL": "MN1-" },
-        "6": { "RNRXAMXX01": "NR1-", "RNRXPMXX01": "NR2-", "ASISTENTE NR": "NR4-", "USUARIO PROFESIONAL": "NR3-" },
-        "7": { "RNIXAMXX01": "NI1-", "RNIXPMXX01": "NI2-", "UPROVISI07": "NI3-" },
-        "8": { "RPEXAMXX01": "PR1-", "RPEXPMXX01": "PR2-", "USUARIO PROVISIONAL": "PR3-" }
-    };
 
     function actualizarUsuarios() {
         const idSucursal = sucursalSelect?.value;
@@ -688,6 +761,11 @@ document.addEventListener('DOMContentLoaded', async () => {
         fRecibido.style.cursor = '';
         fRecibido.value = '';
 
+        if(turnoSelect) {
+            turnoSelect.disabled = false;
+            turnoSelect.style.backgroundColor = '';
+        }
+
         if (!fechaVal || !sucursalNombre) {
             statusDiv.style.display = 'none';
             return;
@@ -703,10 +781,20 @@ document.addEventListener('DOMContentLoaded', async () => {
             statusDiv.style.border = '1px dashed var(--success)';
             statusDiv.innerHTML = `
                 <div>
-                    <span style="color: var(--success); font-weight: 600;"><i class="fas fa-check-circle"></i> Documento PDF enlazado exitosamente (${fechaVal}).</span>
+                    <span style="color: var(--success); font-weight: 600;"><i class="fas fa-check-circle"></i> Documento PDF enlazado exitosamente (${fechaVal}). Turno: ${match.turno || 'N/A'}</span>
                 </div>
             `;
             
+            // Auto asignar y bloquear Turno detectado en el PDF
+            if (match.turno && turnoSelect) {
+                let options = Array.from(turnoSelect.options).map(o => o.value);
+                if(options.includes(match.turno)) {
+                    turnoSelect.value = match.turno;
+                }
+                turnoSelect.disabled = true;
+                turnoSelect.style.backgroundColor = '#f1f5f9';
+            }
+
             if (match.fechaCargaISO) {
                 fRecibido.value = match.fechaCargaISO;
             } else {
@@ -724,7 +812,12 @@ document.addEventListener('DOMContentLoaded', async () => {
 
             pdfContainer.style.display = 'flex';
             let srcUrl = match.fileData;
-            if (!srcUrl.includes('#toolbar=0')) srcUrl += '#toolbar=0';
+            // Quitamos #toolbar=0 y ponemos #toolbar=1 para permitir Zoom
+            if (!srcUrl.includes('#toolbar=')) {
+                srcUrl += '#toolbar=1&navpanes=0'; 
+            } else {
+                srcUrl = srcUrl.replace('#toolbar=0', '#toolbar=1&navpanes=0');
+            }
             pdfFrame.src = srcUrl;
 
             registrarAuditoria("AUTO-DETECCIÓN PDF", `El sistema enlazó automáticamente el PDF de ${sucursalNombre} para el día ${fechaVal}`);
@@ -959,7 +1052,6 @@ document.addEventListener('DOMContentLoaded', async () => {
 
         let historial = JSON.parse(localStorage.getItem('historialCierresEstuconta')) || [];
         
-        // --- 1. VALIDACIÓN: CIERRE DUPLICADO ---
         if (!window.cierreEnEdicionId) {
             const existeCierre = historial.find(c => c.sucursal.toUpperCase() === sucursalNombre.toUpperCase() && c.fechaCierre === fechaCierreInput);
             if (existeCierre) {
@@ -998,7 +1090,6 @@ document.addEventListener('DOMContentLoaded', async () => {
             });
         });
 
-        // --- 4. VALIDACIÓN: BOLETAS DUPLICADAS EN HISTORIAL GENERAL ---
         let boletaDuplicada = null;
         let infoDuplicada = "";
 
@@ -1051,6 +1142,13 @@ document.addEventListener('DOMContentLoaded', async () => {
         if (window.cierreEnEdicionId) {
             const index = historial.findIndex(x => x.id === window.cierreEnEdicionId);
             if(index !== -1) {
+                // Notificar al master sobre la edición en detalle
+                agregarNotificacion(
+                    `El usuario ${currentUser.user} modificó el cierre de ${sucursalNombre} (${fechaCierreInput}). Anterior: Q${historial[index].totalCierre} -> Nuevo: Q${document.getElementById('totalCierre').textContent}`, 
+                    'alerta', 
+                    'master'
+                );
+
                 historial[index].usuario = document.getElementById('turnoSelect').value;
                 historial[index].fechaCierre = fechaCierreInput;
                 historial[index].fechaRecibido = document.getElementById('fechaRecibido').value;
@@ -1081,6 +1179,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             };
             historial.push(nuevoCierre);
             registrarAuditoria("AGREGAR CIERRE", `Guardó nuevo cierre en ${sucursalNombre} totalizando Q${nuevoCierre.totalCierre}`);
+            agregarNotificacion(`Cierre registrado por ${currentUser.user} en ${sucursalNombre} (${fechaCierreInput})`, 'info', 'master');
         }
 
         guardarEnFirebase('historialCierresEstuconta', historial);
@@ -1088,22 +1187,61 @@ document.addEventListener('DOMContentLoaded', async () => {
         cargarDatosDiaActual();
         document.getElementById('fechaRecibido').value = '';
         document.getElementById('notas').value = '';
+        if(turnoSelect) {
+            turnoSelect.disabled = false;
+            turnoSelect.style.backgroundColor = '';
+        }
         cargarHistorialBD(); 
     });
 
 
     // --- 7. HISTORIAL BASE DE DATOS ---
+    
+    // Filtro dinámico Sucursal -> Usuario
+    document.getElementById('filtroSucursal')?.addEventListener('change', (e) => {
+        const fUser = document.getElementById('filtroUsuario');
+        if(!fUser) return;
+        fUser.innerHTML = '<option value="">Todos</option>';
+        const idSuc = sucursalMapInv[e.target.value.toUpperCase()];
+        if(idSuc && datosUsuarios[idSuc]) {
+            Object.keys(datosUsuarios[idSuc]).forEach(u => {
+                fUser.innerHTML += `<option value="${u}">${u}</option>`;
+            });
+        }
+    });
+
+    document.getElementById('btnAplicarFiltros')?.addEventListener('click', () => {
+        cargarHistorialBD();
+    });
+
+    document.getElementById('btnLimpiarFiltrosBD')?.addEventListener('click', () => {
+        document.getElementById('filtroSucursal').value = '';
+        document.getElementById('filtroFecha').value = '';
+        document.getElementById('filtroUsuario').innerHTML = '<option value="">Todos</option>';
+        cargarHistorialBD();
+    });
+
     function cargarHistorialBD() {
         const historial = JSON.parse(localStorage.getItem('historialCierresEstuconta')) || [];
         const tbody = document.querySelector('#tablaHistorial tbody');
-        if(!tbody) return; tbody.innerHTML = '';
+        if(!tbody) return; 
+        tbody.innerHTML = '';
         
-        if (historial.length === 0) {
+        let filtrados = historial;
+        const fSuc = document.getElementById('filtroSucursal')?.value;
+        const fFec = document.getElementById('filtroFecha')?.value;
+        const fUsu = document.getElementById('filtroUsuario')?.value;
+
+        if (fSuc) filtrados = filtrados.filter(h => h.sucursal === fSuc);
+        if (fFec) filtrados = filtrados.filter(h => h.fechaCierre === fFec);
+        if (fUsu) filtrados = filtrados.filter(h => h.usuario === fUsu);
+
+        if (filtrados.length === 0) {
             tbody.innerHTML = `<tr><td colspan="9" style="text-align: center;">No hay registros disponibles.</td></tr>`;
             return;
         }
 
-        historial.sort((a,b) => b.id - a.id).forEach(c => {
+        filtrados.sort((a,b) => b.id - a.id).forEach(c => {
             const tr = document.createElement('tr');
             
             let btnEliminar = '';
@@ -1118,6 +1256,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 <td>${c.fechaRecibido || '-'}</td>
                 <td>${c.fechaCierre}</td>
                 <td>${c.sucursal}</td>
+                <td>${c.usuario}</td>
                 <td>Q${c.totalCierre}</td>
                 <td>Q${c.totalFisico}</td>
                 <td>${c.totalDiferencia || '-'}</td>
@@ -1248,19 +1387,30 @@ document.addEventListener('DOMContentLoaded', async () => {
         const historial = JSON.parse(localStorage.getItem('historialCierresEstuconta')) || [];
         const c = historial.find(x => x.id === id);
         if(!c) return;
+
         if((c.ediciones || 0) >= 2) {
+            Swal.fire({
+                title: 'Límite de ediciones alcanzado',
+                text: 'Ha superado el límite de 2 modificaciones permitidas. ¿Desea enviar una solicitud al Máster para desbloquear la edición?',
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonText: 'Sí, enviar solicitud'
+            }).then(res => {
+                if(res.isConfirmed) {
+                    const reqs = JSON.parse(localStorage.getItem('solicitudesEstuconta')) || [];
+                    reqs.push({id: Date.now(), fecha: new Date().toLocaleDateString(), sucursal: c.sucursal, usuario: currentUser.user, tipo: 'Desbloqueo de Edición', archivoAfectado: `Cierre ID: ${id}`, descripcion: 'Se requiere modificación adicional tras superar el límite establecido.', estado: 'Pendiente'});
+                    guardarEnFirebase('solicitudesEstuconta', reqs);
+                    agregarNotificacion(`El usuario ${currentUser.user} solicita desbloquear la edición del cierre ID ${id}`, 'alerta', 'master');
+                    registrarAuditoria("SOLICITUD CREADA", `Solicitó desbloqueo de edición para cierre ID ${id}.`);
+                    Swal.fire('Enviado', 'Solicitud enviada al Máster exitosamente.', 'success');
+                }
+            });
             registrarAuditoria("ERROR EDICIÓN", `Intentó editar cierre ID ${id} pero superó el límite de ediciones.`);
-            return Swal.fire('Límite alcanzado', 'Este cierre ya ha sido editado el máximo de 2 veces.', 'error');
+            return;
         }
         
-        const sucursalMap = {
-            "CHIQUIMULA": "1", "SAN NICOLAS 1": "2", "SIXTINO": "3",
-            "FRUTAL": "4", "METRONORTE": "5", "NARANJO": "6",
-            "SAN NICOLAS 2": "7", "PERI ROOSEVELT": "8"
-        };
-        
-        if (sucursalSelect && sucursalMap[c.sucursal.toUpperCase()]) {
-            sucursalSelect.value = sucursalMap[c.sucursal.toUpperCase()];
+        if (sucursalSelect && sucursalMapInv[c.sucursal.toUpperCase()]) {
+            sucursalSelect.value = sucursalMapInv[c.sucursal.toUpperCase()];
             actualizarUsuarios(); 
         }
 
@@ -1309,7 +1459,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             guardarEnFirebase('solicitudesEstuconta', reqs);
             cargarSolicitudes();
             registrarAuditoria("SOLICITUD CREADA", `Solicitó eliminar cierre ID ${id}. Motivo: ${motivo}`);
-            agregarNotificacion(`Nueva solicitud de eliminación de cierre de ${currentUser.user}`, 'alerta');
+            agregarNotificacion(`Nueva solicitud de eliminación de cierre de ${currentUser.user}`, 'alerta', 'master');
             Swal.fire('Enviado', 'Solicitud de eliminación enviada al Master.', 'success');
         }
     }
@@ -1337,7 +1487,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         Swal.fire('Eliminado', 'El registro ha sido borrado del sistema.', 'success');
     };
 
-    // --- 8. RESUMEN MENSUAL CONTABLE COMPLETO ---
+    // --- 8. RESUMEN MENSUAL CONTABLE PROFESIONAL Y FILTRADO ---
     document.getElementById('btnGenerarResumen')?.addEventListener('click', () => {
         const fInicio = document.getElementById('filtroResumenInicio').value;
         const fFin = document.getElementById('filtroResumenFin').value;
@@ -1352,12 +1502,21 @@ document.addEventListener('DOMContentLoaded', async () => {
         const agrupacion = {};
         filtrados.forEach(c => {
             (c.detalles || []).forEach(d => {
-                const llave = `${c.sucursal}-${d.formaPago}`;
-                if(!agrupacion[llave]) {
-                    agrupacion[llave] = { sucursal: c.sucursal, formaPago: d.formaPago, sys: 0, fis: 0 };
+                const sys = parseFloat(d.montoCierre || 0);
+                const fis = parseFloat(d.montoFisico || 0);
+                // Filtrar las que tengan 0 en ambos para que no estorben
+                if (sys === 0 && fis === 0) return;
+
+                const llaveSucursal = c.sucursal;
+                if(!agrupacion[llaveSucursal]) agrupacion[llaveSucursal] = [];
+
+                let existente = agrupacion[llaveSucursal].find(x => x.formaPago === d.formaPago);
+                if (!existente) {
+                    existente = { formaPago: d.formaPago, sys: 0, fis: 0 };
+                    agrupacion[llaveSucursal].push(existente);
                 }
-                agrupacion[llave].sys += parseFloat(d.montoCierre || 0);
-                agrupacion[llave].fis += parseFloat(d.montoFisico || 0);
+                existente.sys += sys;
+                existente.fis += fis;
             });
         });
 
@@ -1366,40 +1525,66 @@ document.addEventListener('DOMContentLoaded', async () => {
         if(!tbody || !tfoot) return;
         tbody.innerHTML = ''; tfoot.innerHTML = '';
         
-        const resultados = Object.values(agrupacion);
-        if(resultados.length === 0) {
-            tbody.innerHTML = `<tr><td colspan="5" style="text-align: center;">No hay datos para estos filtros</td></tr>`;
+        const llavesSucursales = Object.keys(agrupacion).sort();
+        if(llavesSucursales.length === 0) {
+            tbody.innerHTML = `<tr><td colspan="5" style="text-align: center;">No hay datos reales económicos para los filtros seleccionados</td></tr>`;
             return;
         }
 
-        let totSys = 0, totFis = 0;
-        resultados.forEach(r => {
-            totSys += r.sys; totFis += r.fis;
-            const diff = r.sys - r.fis;
+        let totGlobalSys = 0, totGlobalFis = 0;
+        
+        llavesSucursales.forEach(sucursal => {
+            // Cabecera visual por sucursal
             tbody.innerHTML += `
-                <tr>
-                    <td>${r.sucursal}</td>
-                    <td><strong>${r.formaPago}</strong></td>
-                    <td>Q ${r.sys.toFixed(2)}</td>
-                    <td>Q ${r.fis.toFixed(2)}</td>
-                    <td style="color:${diff===0?'var(--success)':'var(--danger)'}; font-weight:bold;">Q ${diff.toFixed(2)}</td>
+                <tr class="group-header">
+                    <td colspan="5" style="background:#e2e8f0; font-weight:bold; color:var(--primary); text-transform:uppercase; font-size:0.95rem; border-top:2px solid var(--border); padding: 12px 15px;">
+                        <i class="fas fa-store text-accent"></i> SUCURSAL: ${sucursal}
+                    </td>
                 </tr>
             `;
+
+            let tSucSys = 0, tSucFis = 0;
+            agrupacion[sucursal].sort((a,b) => a.formaPago.localeCompare(b.formaPago)).forEach(r => {
+                tSucSys += r.sys; tSucFis += r.fis;
+                const diff = r.sys - r.fis;
+                tbody.innerHTML += `
+                    <tr>
+                        <td style="text-align: center;"><i class="fas fa-chevron-right" style="color:#cbd5e1; font-size:0.7rem;"></i></td>
+                        <td><strong style="color: var(--secondary);">${r.formaPago}</strong></td>
+                        <td>Q ${r.sys.toFixed(2)}</td>
+                        <td>Q ${r.fis.toFixed(2)}</td>
+                        <td style="color:${diff===0?'var(--success)':'var(--danger)'}; font-weight:bold;">Q ${diff.toFixed(2)}</td>
+                    </tr>
+                `;
+            });
+            // Subtotal de sucursal
+            const diffSuc = tSucSys - tSucFis;
+            tbody.innerHTML += `
+                <tr style="background:#f8fafc; font-style:italic; font-size:0.9rem;">
+                    <td colspan="2" style="text-align:right;">Subtotal ${sucursal}:</td>
+                    <td style="font-weight:600;">Q ${tSucSys.toFixed(2)}</td>
+                    <td style="font-weight:600;">Q ${tSucFis.toFixed(2)}</td>
+                    <td style="color:${diffSuc===0?'var(--success)':'var(--danger)'}; font-weight:600;">Q ${diffSuc.toFixed(2)}</td>
+                </tr>
+            `;
+            
+            totGlobalSys += tSucSys; 
+            totGlobalFis += tSucFis;
         });
         
         tfoot.innerHTML = `
-            <tr style="background: #f1f5f9; font-weight: bold; font-size: 1.1rem;">
-                <td colspan="2" style="text-align: right;">TOTALES GLOBALES:</td>
-                <td>Q ${totSys.toFixed(2)}</td>
-                <td>Q ${totFis.toFixed(2)}</td>
-                <td style="color:${(totSys-totFis)===0?'var(--success)':'var(--danger)'};">Q ${(totSys-totFis).toFixed(2)}</td>
+            <tr style="background: var(--primary); color: white; font-weight: bold; font-size: 1.1rem;">
+                <td colspan="2" style="text-align: right; border-radius: 0 0 0 8px;">TOTALES GLOBALES:</td>
+                <td>Q ${totGlobalSys.toFixed(2)}</td>
+                <td>Q ${totGlobalFis.toFixed(2)}</td>
+                <td style="color:${(totGlobalSys-totGlobalFis)===0?'#34d399':'#f87171'}; border-radius: 0 0 8px 0;">Q ${(totGlobalSys-totGlobalFis).toFixed(2)}</td>
             </tr>
         `;
         registrarAuditoria("REPORTE MENSUAL", `Generó cuadre contable. Sucursal: ${suc||'Todas'}, Periodo: ${fInicio||'-'} a ${fFin||'-'}`);
     });
 
 
-    // --- 9. CONFIGURACIÓN DE NOTIFICACIONES COMPLETO ---
+    // --- 9. CONFIGURACIÓN DE NOTIFICACIONES ---
     function cargarExcepciones() {
         const ul = document.getElementById('listaExcepciones');
         if(!ul) return;
@@ -1434,13 +1619,18 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
 
 
-    // --- 10. GESTIÓN DE SOLICITUDES COMPLETO ---
+    // --- 10. GESTIÓN DE SOLICITUDES PRIVADAS ---
     function cargarSolicitudes() {
-        const reqs = JSON.parse(localStorage.getItem('solicitudesEstuconta')) || [];
+        let reqs = JSON.parse(localStorage.getItem('solicitudesEstuconta')) || [];
         const tbody = document.querySelector('#tablaSolicitudes tbody');
         if(!tbody) return;
         tbody.innerHTML = '';
         
+        // Filtro de Privacidad: Solo el master ve todo, los demás ven las suyas
+        if(currentUser.role !== 'master') {
+            reqs = reqs.filter(r => r.usuario === currentUser.user);
+        }
+
         reqs.forEach((r, idx) => {
             const tr = document.createElement('tr');
             let colorSt = r.estado==='Pendiente'?'var(--warning)':(r.estado==='Aprobado'?'var(--success)':'var(--danger)');
@@ -1462,16 +1652,23 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
 
     window.resolverSol = async function(idx, nuevoEstado) {
-        const reqs = JSON.parse(localStorage.getItem('solicitudesEstuconta')) || [];
+        let allReqs = JSON.parse(localStorage.getItem('solicitudesEstuconta')) || [];
+        // Al indexar, buscamos el id real en vez del índice del filter
+        let reqsFiltradas = allReqs;
+        if(currentUser.role !== 'master') reqsFiltradas = allReqs.filter(r => r.usuario === currentUser.user);
+        const solicitud = reqsFiltradas[idx];
+        const realIdx = allReqs.findIndex(r => r.id === solicitud.id);
+
         const {value: msg} = await Swal.fire({ title: `Resolver como ${nuevoEstado}`, input: 'text', inputPlaceholder: 'Comentario opcional...', showCancelButton: true });
         if (msg === undefined) return; 
         
-        reqs[idx].estado = nuevoEstado;
-        reqs[idx].mensajeAutorizador = msg || (nuevoEstado === 'Aprobado' ? 'Autorizado' : 'Denegado');
-        guardarEnFirebase('solicitudesEstuconta', reqs);
+        allReqs[realIdx].estado = nuevoEstado;
+        allReqs[realIdx].mensajeAutorizador = msg || (nuevoEstado === 'Aprobado' ? 'Autorizado' : 'Denegado');
+        guardarEnFirebase('solicitudesEstuconta', allReqs);
         cargarSolicitudes();
-        registrarAuditoria("RESOLVER SOLICITUD", `El Master ${nuevoEstado.toLowerCase()} la solicitud de ${reqs[idx].usuario}`);
-        agregarNotificacion(`Su solicitud de ${reqs[idx].tipo} fue ${nuevoEstado}`, nuevoEstado==='Aprobado'?'info':'alerta');
+        registrarAuditoria("RESOLVER SOLICITUD", `El Master ${nuevoEstado.toLowerCase()} la solicitud de ${allReqs[realIdx].usuario}`);
+        // Notificamos directo al creador de la solicitud
+        agregarNotificacion(`Su solicitud de ${allReqs[realIdx].tipo} fue ${nuevoEstado}`, nuevoEstado==='Aprobado'?'info':'alerta', allReqs[realIdx].usuario);
     }
 
 

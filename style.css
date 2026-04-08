@@ -325,6 +325,7 @@ body {
 .upload-container { width: 100%; }
 .upload-dropzone { border: 2px dashed var(--border); border-radius: var(--radius-lg); background: #f8fafc; padding: 60px 20px; text-align: center; cursor: pointer; transition: all 0.2s ease; position: relative; }
 .upload-dropzone:hover { border-color: var(--accent); background: rgba(0, 97, 255, 0.03); }
+.upload-dropzone.dragover { border-color: var(--accent); background: rgba(0, 97, 255, 0.08); transform: scale(1.02); }
 .upload-icon { font-size: 3.5rem; color: #adbdcc; margin-bottom: 20px; transition: all 0.2s ease; }
 .upload-title { font-size: 1.3rem; color: var(--primary); font-weight: 700; margin: 0 0 8px 0; }
 .file-info { display: flex; align-items: center; background: #f5f9ff; border: 1px solid rgba(0, 97, 255, 0.15); padding: 18px 22px; border-radius: 12px; margin-top: 20px; gap: 15px; box-shadow: var(--shadow-sm); }

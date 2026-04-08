@@ -261,14 +261,14 @@
                     <input type="date" id="filtroFecha" class="modern-input">
                 </div>
                 <div class="form-group">
-                    <label>Usuario:</label>
+                    <label>Turno / Usuario:</label>
                     <select id="filtroUsuario" class="modern-select">
                         <option value="">Todos</option>
                     </select>
                 </div>
                 <div class="form-group" style="display: flex; gap: 5px;">
-                    <button class="btn btn-azul" id="btnAplicarFiltros" style="padding: 10px 15px;" title="Buscar en pantalla"><i class="fas fa-search"></i></button>
-                    <button class="btn btn-rojo" id="btnLimpiarFiltros" style="padding: 10px 15px; background-color: #64748b;" title="Limpiar Filtros"><i class="fas fa-eraser"></i></button>
+                    <button class="btn btn-azul" id="btnAplicarFiltros" style="padding: 10px 15px;" title="Buscar en pantalla"><i class="fas fa-search"></i> Filtrar</button>
+                    <button class="btn btn-rojo" id="btnLimpiarFiltrosBD" style="padding: 10px 15px; background-color: #64748b;" title="Limpiar Filtros"><i class="fas fa-eraser"></i></button>
                     <button class="btn btn-verde" id="btnExportarDB" style="padding: 10px 15px;"><i class="fas fa-file-excel"></i> Exportar BD</button>
                     <button class="btn btn-rojo" id="btnExportarPDFDB" style="padding: 10px 15px;"><i class="fas fa-file-pdf"></i> Exportar PDF</button>
                 </div>
@@ -335,16 +335,16 @@
                 </div>
             </div>
             <section class="card">
-                <div class="card-body">
-                    <div class="table-responsive">
+                <div class="card-body" style="padding: 0;">
+                    <div class="table-responsive" style="border: none;">
                         <table class="modern-table" id="tablaResumenMensual">
                             <thead>
                                 <tr>
-                                    <th width="20%">Sucursal</th>
-                                    <th width="25%">Forma de Pago</th>
+                                    <th width="10%"></th>
+                                    <th width="30%">Forma de Pago</th>
                                     <th width="20%">Suma Total Sistema (Q)</th>
                                     <th width="20%">Suma Total Físico (Q)</th>
-                                    <th width="15%">Diferencia (Q)</th>
+                                    <th width="20%">Diferencia (Q)</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -413,16 +413,17 @@
             <header class="main-header" style="padding: 2rem 0 1.5rem 0;">
                 <div class="header-title-area">
                     <h1>Carga de Documentación Diaria</h1>
-                    <p>Seleccione y previsualice su archivo PDF antes de enviarlo.</p>
+                    <p>Seleccione, arrastre y previsualice su archivo PDF antes de enviarlo.</p>
                 </div>
             </header>
-            <div style="display: flex; gap: 20px; align-items: flex-start; max-width: 1000px; margin: 0 auto;">
-                <section class="card" style="flex: 1;">
+            <div style="display: flex; gap: 20px; align-items: flex-start; max-width: 1200px; margin: 0 auto;">
+                <section class="card" style="flex: 1; max-width: 450px;">
                     <div class="card-body" style="padding: 30px;">
                         <div class="upload-container">
                             <div class="upload-dropzone" id="dropzonePdf" onclick="document.getElementById('archivoPdf').click()">
                                 <i class="fas fa-cloud-upload-alt upload-icon"></i>
                                 <h3 class="upload-title">Arrastra y suelta tu PDF aquí</h3>
+                                <p style="color: var(--secondary); font-size: 0.85rem; margin-top: 10px;">o haz clic para explorar</p>
                                 <input type="file" id="archivoPdf" accept=".pdf" class="hidden">
                             </div>
                             <div id="fileInfoDisplay" class="file-info hidden">
@@ -431,8 +432,14 @@
                                 <i class="fas fa-times-circle file-remove" id="btnRemoveFile" title="Quitar archivo"></i>
                             </div>
                         </div>
-                        <div class="form-group" style="text-align: left; margin-top: 25px; margin-bottom: 25px;">
-                            <label style="font-size: 0.95rem;"><i class="fas fa-calendar-day"></i> Selecciona la Fecha del Cierre:</label>
+                        
+                        <div class="form-group" style="text-align: left; margin-top: 20px;">
+                            <label style="font-size: 0.95rem;"><i class="fas fa-user-clock"></i> Selecciona el Turno:</label>
+                            <select id="turnoCargaPdf" class="modern-select" style="padding: 12px;"></select>
+                        </div>
+
+                        <div class="form-group" style="text-align: left; margin-top: 15px; margin-bottom: 25px;">
+                            <label style="font-size: 0.95rem;"><i class="fas fa-calendar-day"></i> Fecha del Cierre:</label>
                             <input type="date" id="fechaCargaPdf" class="modern-input" style="padding: 12px;">
                         </div>
                         <div class="action-buttons-container" style="justify-content: space-between;">
@@ -443,10 +450,10 @@
                     </div>
                 </section>
                 
-                <section class="card hidden" id="previewCargaCard" style="flex: 1; height: 500px; display: flex; flex-direction: column; overflow: hidden; border: 2px dashed var(--accent);">
+                <section class="card hidden" id="previewCargaCard" style="flex: 1.5; height: 650px; display: flex; flex-direction: column; overflow: hidden; border: 2px dashed var(--accent);">
                     <div style="background: var(--primary); padding: 10px 15px; color: white; display: flex; justify-content: space-between; align-items: center;">
-                        <span style="font-weight: 600;"><i class="fas fa-eye"></i> Previsualización</span>
-                        <span style="font-size: 0.75rem; background: rgba(255,255,255,0.2); padding: 4px 8px; border-radius: 4px;">Modo Lectura</span>
+                        <span style="font-weight: 600;"><i class="fas fa-eye"></i> Previsualización Ampliada</span>
+                        <span style="font-size: 0.75rem; background: rgba(255,255,255,0.2); padding: 4px 8px; border-radius: 4px;">Modo Lectura con Zoom</span>
                     </div>
                     <iframe id="iframePreviewCarga" src="" style="width: 100%; height: 100%; border: none; background: #334155;"></iframe>
                 </section>
@@ -457,11 +464,11 @@
             <header class="main-header" style="padding: 2rem 0 1.5rem 0;">
                 <div class="header-title-area">
                     <h1>Repositorio Central de Archivos</h1>
-                    <p>Gestión estructurada por sucursales y permisos por rol</p>
+                    <p>Gestión estructurada por sucursales y meses</p>
                 </div>
             </header>
             <section class="card">
-                <div class="card-body" id="treeViewContainer" style="padding: 20px; min-height: 400px; display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px;">
+                <div class="card-body" id="treeViewContainer" style="padding: 20px; min-height: 400px; display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 20px; align-items: start;">
                     </div>
             </section>
         </div>
@@ -482,7 +489,7 @@
                                     <th>Sucursal</th>
                                     <th>Usuario</th>
                                     <th>Tipo</th>
-                                    <th>Archivo Afectado</th>
+                                    <th>Archivo/Registro Afectado</th>
                                     <th>Descripción / Motivo</th>
                                     <th>Estado</th>
                                     <th>Mensaje Autorizador</th>
