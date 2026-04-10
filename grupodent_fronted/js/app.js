@@ -1,5 +1,5 @@
 // URL de tu nuevo servidor Backend (Local por ahora)
-const BACKEND_URL = 'http://localhost:3000/api/sync';
+const BACKEND_URL = 'https://cierres-diarios.onrender.com';
 
 // --- NUEVA FUNCIÓN PUENTE HACIA EL BACKEND ---
 async function guardarEnFirebase(key, data) {
