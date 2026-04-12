@@ -204,6 +204,7 @@ body {
     border: 1px solid var(--border);
     box-shadow: var(--shadow-sm);
     display: flex;
+    flex-wrap: wrap; /* NUEVO: Permite que los elementos bajen de línea si no caben */
     align-items: center;
     gap: 15px;
     padding: 12px 20px;
@@ -238,6 +239,7 @@ body {
     flex-direction: column;
     gap: 4px;
     flex: 1;
+    min-width: 130px; /* NUEVO: Evita que los inputs se hagan demasiado pequeños */
 }
 
 .compact-form-group label {
