@@ -209,6 +209,9 @@ document.addEventListener('DOMContentLoaded', async () => {
                         turnoCargaPdf.innerHTML += `<option value="${u}">${u}</option>`;
                     });
                 }
+                
+                // NUEVO: Sincronizar Responsable al iniciar sesión como sucursal
+                turnoCargaPdf.dispatchEvent(new Event('change'));
             }
         }
     }
@@ -330,6 +333,12 @@ document.addEventListener('DOMContentLoaded', async () => {
     const btnRemoveFile = document.getElementById('btnRemoveFile');
     const dropzonePdf = document.getElementById('dropzonePdf');
     let archivoSeleccionadoData = null; 
+
+    // NUEVO: Sincronizar Responsable en Carga PDF al cambiar de turno
+    document.getElementById('turnoCargaPdf')?.addEventListener('change', (e) => {
+        const responsableInput = document.getElementById('responsableCargaPdf');
+        if (responsableInput) responsableInput.value = e.target.value; 
+    });
 
     function procesarArchivoPdf(file) {
         if (file && file.type === "application/pdf") {
@@ -722,6 +731,10 @@ document.addEventListener('DOMContentLoaded', async () => {
         if(turnoSelect){
             turnoSelect.innerHTML = '';
             usuarios.forEach(u => { const op = document.createElement('option'); op.value = u; op.textContent = u; turnoSelect.appendChild(op); });
+            
+            // NUEVO: Actualizar el campo responsable automáticamente
+            const respSelect = document.getElementById('responsableSelect');
+            if (respSelect) respSelect.value = turnoSelect.value;
         }
         verificarPdfRepositorio(); 
         registrarAuditoria("CAMBIO SUCURSAL", `Cambió filtro Cierre Diario a sucursal ID: ${idSucursal}`);
@@ -834,7 +847,10 @@ document.addEventListener('DOMContentLoaded', async () => {
     });
 
     // Nuevo disparador para cuando el usuario cambia el turno manualmente y así traiga el PDF correcto
-    document.getElementById('turnoSelect')?.addEventListener('change', () => {
+    document.getElementById('turnoSelect')?.addEventListener('change', (e) => {
+        // NUEVO: Sincronizar responsable al cambiar de turno en panel de Cierre
+        const responsableInput = document.getElementById('responsableSelect');
+        if (responsableInput) responsableInput.value = e.target.value;
         verificarPdfRepositorio();
     });
 
@@ -1422,6 +1438,10 @@ document.addEventListener('DOMContentLoaded', async () => {
                     opt.value = c.usuario; opt.textContent = c.usuario; turnoSel.appendChild(opt);
                 }
                 turnoSel.value = c.usuario;
+
+                // NUEVO: Cargar el responsable al editar
+                const respSelect = document.getElementById('responsableSelect');
+                if (respSelect) respSelect.value = c.usuario;
             }
 
             document.getElementById('fechaRecibido').value = c.fechaRecibido || '';
