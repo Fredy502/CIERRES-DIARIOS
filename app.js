@@ -408,8 +408,11 @@ document.addEventListener('DOMContentLoaded', async () => {
         
         // NUEVO: Rescatar el tipo de documento para separarlos en la DB
         const tipoDocSel = document.getElementById('tipoDocCarga');
-        const tipoDocVal = tipoDocSel ? tipoDocSel.value : 'cierre';
-        const nombreDocDisplay = tipoDocVal === 'cierre' ? 'Cierre Diario' : 'Boleta de Depósito';
+        const tipoDocVal = tipoDocSel ? tipoDocSel.value : 'completo';
+        
+        let nombreDocDisplay = 'Cierre Completo';
+        if(tipoDocVal === 'incompleto') nombreDocDisplay = 'Cierre Incompleto';
+        if(tipoDocVal === 'faltante') nombreDocDisplay = 'Comprobantes Faltantes';
 
         const repo = JSON.parse(localStorage.getItem('repoArchivos')) || [];
         const isoHoy = new Date().toISOString().split('T')[0];
@@ -419,7 +422,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             sucursal: currentUser.sucursal,
             turno: turnoSel ? turnoSel.value : 'N/A', 
             fecha: fecha,
-            tipoDoc: tipoDocVal, // Guardamos la bandera
+            tipoDoc: tipoDocVal, // Guardamos la bandera: completo, incompleto, faltante
             fechaSubida: new Date().toLocaleString(),
             fechaCargaISO: isoHoy,
             fileData: archivoSeleccionadoData
@@ -546,9 +549,20 @@ document.addEventListener('DOMContentLoaded', async () => {
                             `;
                         }
 
-                        // Diferenciar visualmente si es cierre o depósito
-                        let labelPdf = file.tipoDoc === 'deposito' ? 'DEPOSITO_ATRASADO' : 'CIERRE';
-                        let colorIcon = file.tipoDoc === 'deposito' ? 'text-success' : 'text-danger';
+                        // Diferenciar visualmente
+                        let labelPdf = 'CIERRE_COMPLETO';
+                        let colorIcon = 'text-danger';
+                        
+                        if (file.tipoDoc === 'faltante' || file.tipoDoc === 'deposito') {
+                            labelPdf = 'COMPROBANTES';
+                            colorIcon = 'text-success';
+                        } else if (file.tipoDoc === 'incompleto') {
+                            labelPdf = 'CIERRE_INCOMPLETO';
+                            colorIcon = 'text-warning';
+                        } else if (file.tipoDoc === 'cierre') {
+                            labelPdf = 'CIERRE_DIARIO';
+                            colorIcon = 'text-danger';
+                        }
 
                         li.innerHTML = `
                             <div style="flex:1;">
@@ -757,7 +771,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
     sucursalSelect?.addEventListener('change', actualizarUsuarios);
 
-    // NUEVO: Variables para controlar PDFs Múltiples (Cierre y Depósito)
+    // NUEVO: Variables para controlar PDFs Múltiples (Cierre y Depósito/Faltante)
     let urlPdfCierreActual = '';
     let urlPdfDepositoActual = '';
 
@@ -820,31 +834,61 @@ document.addEventListener('DOMContentLoaded', async () => {
             }
 
             if (exactMatches.length > 0) {
-                // Separar Cierre y Depósito
-                let docCierre = exactMatches.find(m => m.tipoDoc !== 'deposito');
-                let docDeposito = exactMatches.find(m => m.tipoDoc === 'deposito');
+                // Separar Cierre y Comprobantes
+                let docCierre = exactMatches.find(m => m.tipoDoc === 'completo' || m.tipoDoc === 'incompleto' || m.tipoDoc === 'cierre');
+                let docComprobante = exactMatches.find(m => m.tipoDoc === 'faltante' || m.tipoDoc === 'deposito');
 
                 let mensajeStatus = '';
-                if(docCierre && docDeposito) {
-                    mensajeStatus = `Documento de Cierre y Boleta de Depósito enlazados exitosamente (${fechaVal}). Turno: ${docCierre.turno || 'N/A'}`;
-                    pdfToggleContainer.classList.remove('hidden');
-                    document.getElementById('btnVerCierrePdf').classList.add('active');
-                    document.getElementById('btnVerDepositoPdf').classList.remove('active');
-                } else if (docCierre) {
-                    mensajeStatus = `Documento de Cierre enlazado exitosamente (${fechaVal}). Turno: ${docCierre.turno || 'N/A'}`;
-                } else if (docDeposito) {
-                    mensajeStatus = `ATENCIÓN: Solo se encontró Boleta de Depósito para (${fechaVal}). Faltante de cargar Cierre Diario.`;
+                let statusClass = 'success'; // success, warning, danger
+
+                if(docCierre) {
+                    if(docCierre.tipoDoc === 'completo') {
+                        mensajeStatus = `Cierre completo adjunto de la sucursal ${sucursalNombre} y dia ${fechaVal}`;
+                        pdfToggleContainer.classList.add('hidden');
+                        statusClass = 'success';
+                    } else if (docCierre.tipoDoc === 'incompleto') {
+                        if (docComprobante) {
+                            mensajeStatus = `Se cargaron comprobantes fisicos faltante de la sucursal ${sucursalNombre} y dia ${fechaVal}, cierre completo`;
+                            pdfToggleContainer.classList.remove('hidden');
+                            document.getElementById('btnVerCierrePdf').textContent = "Cierre Incompleto";
+                            document.getElementById('btnVerDepositoPdf').textContent = "Comprobantes";
+                            statusClass = 'success';
+                        } else {
+                            mensajeStatus = `Cierre incompleto, falta adjuntar comprobantes fisicos de la sucursal ${sucursalNombre} y dia ${fechaVal}`;
+                            pdfToggleContainer.classList.add('hidden');
+                            statusClass = 'warning';
+                        }
+                    } else {
+                        // Legacy support for 'cierre' and 'deposito'
+                        if(docComprobante) {
+                            mensajeStatus = `Documentos base y adicionales enlazados exitosamente (${fechaVal}).`;
+                            pdfToggleContainer.classList.remove('hidden');
+                            document.getElementById('btnVerCierrePdf').textContent = "Cierre Diario";
+                            document.getElementById('btnVerDepositoPdf').textContent = "Boletas";
+                            statusClass = 'success';
+                        } else {
+                            mensajeStatus = `Cierre base enlazado exitosamente (${fechaVal}).`;
+                            pdfToggleContainer.classList.add('hidden');
+                            statusClass = 'success';
+                        }
+                    }
+                } else if (docComprobante) {
+                    mensajeStatus = `ATENCIÓN: Solo se encontraron comprobantes cargados para (${fechaVal}). Faltante de cargar Cierre.`;
+                    pdfToggleContainer.classList.add('hidden');
+                    statusClass = 'warning';
                 }
 
-                statusDiv.style.background = 'rgba(5, 150, 105, 0.08)';
-                statusDiv.style.border = '1px dashed var(--success)';
-                statusDiv.innerHTML = `
-                    <div>
-                        <span style="color: var(--success); font-weight: 600;"><i class="fas fa-check-circle"></i> ${mensajeStatus}</span>
-                    </div>
-                `;
+                if (statusClass === 'success') {
+                    statusDiv.style.background = 'rgba(5, 150, 105, 0.08)';
+                    statusDiv.style.border = '1px dashed var(--success)';
+                    statusDiv.innerHTML = `<div><span style="color: var(--success); font-weight: 600;"><i class="fas fa-check-circle"></i> ${mensajeStatus}</span></div>`;
+                } else {
+                    statusDiv.style.background = 'rgba(245, 158, 11, 0.08)';
+                    statusDiv.style.border = '1px dashed var(--warning)';
+                    statusDiv.innerHTML = `<div><span style="color: #d97706; font-weight: 600;"><i class="fas fa-exclamation-triangle"></i> ${mensajeStatus}</span></div>`;
+                }
 
-                let docBaseParaFecha = docCierre || docDeposito;
+                let docBaseParaFecha = docCierre || docComprobante;
                 if (docBaseParaFecha.fechaCargaISO) {
                     fRecibido.value = docBaseParaFecha.fechaCargaISO;
                 } else {
@@ -863,7 +907,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 pdfContainer.style.display = 'flex';
                 
                 if(docCierre) urlPdfCierreActual = docCierre.fileData;
-                if(docDeposito) urlPdfDepositoActual = docDeposito.fileData;
+                if(docComprobante) urlPdfDepositoActual = docComprobante.fileData;
 
                 let srcUrl = urlPdfCierreActual || urlPdfDepositoActual;
                 if (!srcUrl.includes('#toolbar=')) {
@@ -1392,13 +1436,17 @@ document.addEventListener('DOMContentLoaded', async () => {
         const c = historial.find(x => x.id === id);
         if(!c) return;
         
-        // Buscar PDF de Cierre y de Depósito
+        // Buscar PDFs en el repositorio
         const matchesPdf = repo.filter(r => r.sucursal.toUpperCase() === c.sucursal.toUpperCase() && r.fecha === c.fechaCierre && r.turno === c.usuario);
         
         let pdfSection = '';
         if (matchesPdf.length > 0) {
             let btnList = matchesPdf.map(m => {
-                let textBtn = m.tipoDoc === 'deposito' ? 'Ver Boleta de Depósito' : 'Ver PDF de Cierre Diario';
+                let textBtn = '';
+                if (m.tipoDoc === 'faltante' || m.tipoDoc === 'deposito') textBtn = 'Ver Comprobantes Faltantes';
+                else if (m.tipoDoc === 'incompleto') textBtn = 'Ver Cierre Incompleto';
+                else textBtn = 'Ver Cierre Completo';
+                
                 return `<button class="btn btn-verde" style="margin: 5px; font-size: 0.85rem; padding: 10px 15px;" onclick="window.verDocumentoRepositorio('${m.fileData}', false)">
                             <i class="fas fa-file-pdf"></i> ${textBtn}
                         </button>`;

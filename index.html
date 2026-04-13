@@ -236,8 +236,8 @@
                         <span style="font-weight: 600; font-size: 0.95rem;"><i class="fas fa-file-pdf" style="color:#ef4444;"></i> Visor de Documentos</span>
                         
                         <div id="pdfToggleContainer" class="hidden" style="display: flex; gap: 5px; background: rgba(255,255,255,0.1); border-radius: 6px; padding: 3px;">
-                            <button id="btnVerCierrePdf" class="btn-pdf-toggle active">Cierre Diario</button>
-                            <button id="btnVerDepositoPdf" class="btn-pdf-toggle">Depósito</button>
+                            <button id="btnVerCierrePdf" class="btn-pdf-toggle active">Cierre Base</button>
+                            <button id="btnVerDepositoPdf" class="btn-pdf-toggle">Comprobantes</button>
                         </div>
 
                         <button class="btn-icon" style="background: rgba(255,255,255,0.1); color: white; border: none; width: 30px; height: 30px;" title="Expandir" onclick="document.getElementById('modalPreview').classList.remove('hidden'); document.getElementById('pdfPreviewFrame').src = document.getElementById('inlinePdfFrame').src;">
@@ -453,8 +453,9 @@
                         <div class="form-group" style="text-align: left; margin-top: 20px;">
                             <label style="font-size: 0.95rem;"><i class="fas fa-file-alt"></i> Tipo de Documento:</label>
                             <select id="tipoDocCarga" class="modern-select" style="padding: 12px; background-color: #f0f9ff; border-color: #bae6fd; color: #0369a1; font-weight: 600;">
-                                <option value="cierre">Cierre Diario Completo</option>
-                                <option value="deposito">Boleta de Depósito Efectivo (Atrasada)</option>
+                                <option value="completo">Cierre completo</option>
+                                <option value="faltante">Comprobantes fisicos faltantes</option>
+                                <option value="incompleto">Cierre incompleto</option>
                             </select>
                         </div>
                         
