@@ -135,6 +135,65 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
     initChartCierre(); 
 
+    // --- MEJORA 1 y 2: FUNCIÓN GLOBAL PARA LIMPIAR SESIÓN ---
+    function limpiarFormulariosSesion() {
+        // 1. Limpieza de Cierre Diario
+        const camposCierre = ['fechaInput', 'notas', 'fechaRecibido'];
+        camposCierre.forEach(id => {
+            const el = document.getElementById(id);
+            if(el) { el.value = ''; el.removeAttribute('readonly'); el.style.backgroundColor = ''; el.style.cursor = ''; }
+        });
+
+        if(document.getElementById('sucursalSelect')) document.getElementById('sucursalSelect').selectedIndex = 0;
+        if(document.getElementById('turnoSelect')) document.getElementById('turnoSelect').innerHTML = '';
+        
+        if(typeof cargarDatosDiaActual === 'function') cargarDatosDiaActual(); // Vacía la tabla
+
+        window.cierreEnEdicionId = null;
+        urlPdfCierreActual = '';
+        urlPdfDepositoActual = '';
+
+        ['pdf-detection-status', 'inlinePdfContainer', 'pdfToggleContainer'].forEach(id => {
+            const el = document.getElementById(id);
+            if(el) { el.style.display = 'none'; el.classList.add('hidden'); }
+        });
+        if(document.getElementById('inlinePdfFrame')) document.getElementById('inlinePdfFrame').src = '';
+
+        ['totalCierre', 'totalFisico', 'totalDiferencia'].forEach(id => {
+            const el = document.getElementById(id);
+            if(el) el.textContent = '0.00';
+        });
+        if(document.getElementById('displayTotalCierre')) document.getElementById('displayTotalCierre').textContent = 'Q 0.00';
+        if(document.getElementById('displayTotalDiff')) { document.getElementById('displayTotalDiff').textContent = 'Q 0.00'; document.getElementById('displayTotalDiff').style.color = 'var(--secondary)'; }
+        if(document.getElementById('discrepanciasList')) document.getElementById('discrepanciasList').innerHTML = '';
+
+        if (typeof chartCierre !== 'undefined' && chartCierre) {
+            chartCierre.data.datasets[0].data = [100, 0];
+            chartCierre.data.datasets[0].backgroundColor = ['#059669', '#dc2626'];
+            chartCierre.update();
+        }
+
+        // 2. Limpieza de Carga de Documentos (PDF)
+        const archivoPdf = document.getElementById('archivoPdf');
+        if(archivoPdf) archivoPdf.value = '';
+        archivoSeleccionadoData = null; 
+
+        const fileInfo = document.getElementById('fileInfoDisplay');
+        if(fileInfo) fileInfo.classList.add('hidden');
+
+        const dropz = document.getElementById('dropzonePdf');
+        if(dropz) dropz.classList.remove('hidden');
+
+        const fechaCarga = document.getElementById('fechaCargaPdf');
+        if(fechaCarga) fechaCarga.value = '';
+
+        const prevCard = document.getElementById('previewCargaCard');
+        if(prevCard) prevCard.classList.add('hidden');
+
+        const iFramePrev = document.getElementById('iframePreviewCarga');
+        if(iFramePrev) iFramePrev.src = '';
+    }
+
     // --- 2. SISTEMA DE LOGIN ---
     function ejecutarLogin() {
         usersDB = JSON.parse(localStorage.getItem('estucontaUsersDB')) || defaultUsersDB; 
@@ -176,6 +235,10 @@ document.addEventListener('DOMContentLoaded', async () => {
         if (result.isConfirmed) {
             registrarAuditoria("CIERRE DE SESIÓN", `El usuario ${currentUser.user} cerró sesión en el sistema.`);
             currentUser = null;
+            
+            // LLAMAMOS A LA FUNCIÓN DE LIMPIEZA TOTAL AQUÍ
+            limpiarFormulariosSesion();
+            
             appContent.classList.add('hidden');
             loginOverlay.classList.remove('hidden');
             document.getElementById('loginPass').value = '';
@@ -373,19 +436,37 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     archivoPdf?.addEventListener('change', (e) => procesarArchivoPdf(e.target.files[0]));
 
-    dropzonePdf?.addEventListener('dragover', (e) => { 
-        e.preventDefault(); 
-        dropzonePdf.classList.add('dragover'); 
-    });
-    dropzonePdf?.addEventListener('dragleave', (e) => { 
-        e.preventDefault(); 
-        dropzonePdf.classList.remove('dragover'); 
-    });
-    dropzonePdf?.addEventListener('drop', (e) => {
-        e.preventDefault();
-        dropzonePdf.classList.remove('dragover');
-        if(e.dataTransfer.files.length > 0) procesarArchivoPdf(e.dataTransfer.files[0]);
-    });
+    // MEJORA 3: ARREGLO DEL DRAG AND DROP
+    if(dropzonePdf) {
+        // Prevenir comportamiento por defecto de abrir el PDF en otra pestaña
+        ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+            dropzonePdf.addEventListener(eventName, previeneDefault, false);
+            document.body.addEventListener(eventName, previeneDefault, false); // Bloqueo global
+        });
+
+        function previeneDefault(e) {
+            e.preventDefault();
+            e.stopPropagation();
+        }
+
+        // Efectos visuales de arrastre
+        ['dragenter', 'dragover'].forEach(eventName => {
+            dropzonePdf.addEventListener(eventName, () => dropzonePdf.classList.add('dragover'), false);
+        });
+
+        ['dragleave', 'drop'].forEach(eventName => {
+            dropzonePdf.addEventListener(eventName, () => dropzonePdf.classList.remove('dragover'), false);
+        });
+
+        // Evento principal para capturar el archivo soltado
+        dropzonePdf.addEventListener('drop', (e) => {
+            let dt = e.dataTransfer;
+            let files = dt.files;
+            if (files && files.length > 0) {
+                procesarArchivoPdf(files[0]);
+            }
+        });
+    }
 
     btnRemoveFile?.addEventListener('click', () => {
         archivoPdf.value = '';
@@ -406,7 +487,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         const turnoSel = document.getElementById('turnoCargaPdf');
         if (turnoSel && !turnoSel.value) return Swal.fire('Error', 'Debes seleccionar el turno', 'error');
         
-        // NUEVO: Rescatar el tipo de documento para separarlos en la DB
+        // Rescatar el tipo de documento para separarlos en la DB
         const tipoDocSel = document.getElementById('tipoDocCarga');
         const tipoDocVal = tipoDocSel ? tipoDocSel.value : 'completo';
         
@@ -422,7 +503,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             sucursal: currentUser.sucursal,
             turno: turnoSel ? turnoSel.value : 'N/A', 
             fecha: fecha,
-            tipoDoc: tipoDocVal, // Guardamos la bandera: completo, incompleto, faltante
+            tipoDoc: tipoDocVal, 
             fechaSubida: new Date().toLocaleString(),
             fechaCargaISO: isoHoy,
             fileData: archivoSeleccionadoData
@@ -465,120 +546,205 @@ document.addEventListener('DOMContentLoaded', async () => {
     });
 
 
-    // --- 5. REPOSITORIO DE ARCHIVOS ---
+    // --- 5. MEJORA 4: REDISEÑO COMPLETO DEL REPOSITORIO DE ARCHIVOS ---
     const todasLasSucursales = [
         "CHIQUIMULA", "SAN NICOLAS 1", "SIXTINO", "FRUTAL", 
         "METRONORTE", "NARANJO", "SAN NICOLAS 2", "PERI ROOSEVELT"
     ];
 
     function renderizarArbolRepositorio() {
-        const repo = JSON.parse(localStorage.getItem('repoArchivos')) || [];
         const container = document.getElementById('treeViewContainer');
         if(!container) return;
+
+        // Eliminar comportamiento grid previo para que los filtros fluyan correctamente
+        container.style.display = 'block';
+
+        // Inyectar el área de filtros si no existe
+        let repoControls = document.getElementById('repoControls');
+        if(!repoControls) {
+            const controlsHTML = `
+                <div id="repoControls" style="display: flex; gap: 10px; margin-bottom: 20px; background: white; padding: 15px; border-radius: 8px; border: 1px solid var(--border); flex-wrap: wrap; align-items: flex-end; box-shadow: var(--shadow-sm);">
+                    <div class="form-group" style="flex: 1; min-width: 200px;">
+                        <label><i class="fas fa-store"></i> Filtrar Sucursal:</label>
+                        <select id="filtroRepoSucursal" class="modern-select">
+                            <option value="">Todas las Sucursales</option>
+                            ${todasLasSucursales.map(s => `<option value="${s}">${s}</option>`).join('')}
+                        </select>
+                    </div>
+                    <div class="form-group" style="flex: 1; min-width: 150px;">
+                        <label><i class="fas fa-calendar-day"></i> Día Específico:</label>
+                        <input type="date" id="filtroRepoFecha" class="modern-input">
+                    </div>
+                    <div class="form-group" style="flex: 1; min-width: 200px;">
+                        <label><i class="fas fa-file-pdf"></i> Tipo de Documento:</label>
+                        <select id="filtroRepoTipo" class="modern-select">
+                            <option value="">Todos los Tipos</option>
+                            <option value="completo">Cierre Completo</option>
+                            <option value="incompleto">Cierre Incompleto</option>
+                            <option value="faltante">Comprobantes Faltantes</option>
+                        </select>
+                    </div>
+                    <div class="form-group" style="display: flex; gap: 5px;">
+                        <button class="btn btn-azul" id="btnFiltrarRepo" style="padding: 10px 15px;"><i class="fas fa-search"></i> Filtrar</button>
+                        <button class="btn btn-rojo" id="btnLimpiarRepo" style="padding: 10px 15px; background-color: #64748b;" title="Limpiar"><i class="fas fa-eraser"></i></button>
+                    </div>
+                </div>
+                <div id="repoResultsContainer" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(350px, 1fr)); gap: 20px; align-items: start;"></div>
+            `;
+            container.innerHTML = controlsHTML;
+
+            // Enlazar Eventos de los Botones Nuevos
+            document.getElementById('btnFiltrarRepo').addEventListener('click', actualizarVistaRepositorio);
+            document.getElementById('btnLimpiarRepo').addEventListener('click', () => {
+                document.getElementById('filtroRepoSucursal').value = '';
+                document.getElementById('filtroRepoFecha').value = '';
+                document.getElementById('filtroRepoTipo').value = '';
+                actualizarVistaRepositorio();
+            });
+        }
+
+        // Llamamos a la sub-función que hace la magia de procesar y mostrar
+        actualizarVistaRepositorio();
+    }
+
+    function actualizarVistaRepositorio() {
+        const repo = JSON.parse(localStorage.getItem('repoArchivos')) || [];
+        const resultsContainer = document.getElementById('repoResultsContainer');
+        if(!resultsContainer) return;
+
+        // Leer filtros
+        const fSuc = document.getElementById('filtroRepoSucursal').value.toUpperCase();
+        const fFec = document.getElementById('filtroRepoFecha').value;
+        const fTipo = document.getElementById('filtroRepoTipo').value;
+
+        let filtrados = repo;
         
-        container.innerHTML = '';
-        
+        // Regla de seguridad: Si es usuario sucursal, solo ve la de él
+        if(currentUser.role === 'sucursal') {
+            filtrados = filtrados.filter(r => r.sucursal.toUpperCase() === currentUser.sucursal.toUpperCase());
+            document.getElementById('filtroRepoSucursal').value = currentUser.sucursal.toUpperCase();
+            document.getElementById('filtroRepoSucursal').disabled = true; // Bloquea el selector
+        } else if(fSuc) {
+            filtrados = filtrados.filter(r => r.sucursal.toUpperCase() === fSuc);
+        }
+
+        if(fFec) filtrados = filtrados.filter(r => r.fecha === fFec);
+        if(fTipo) filtrados = filtrados.filter(r => r.tipoDoc === fTipo);
+
+        resultsContainer.innerHTML = '';
+
+        if(filtrados.length === 0) {
+            resultsContainer.innerHTML = `<div style="grid-column: 1/-1; text-align:center; padding: 40px; color: var(--secondary); background: #f8fafc; border-radius: 12px; border: 1px dashed var(--border);"><i class="fas fa-folder-open text-accent" style="font-size:3rem; margin-bottom:15px; display:block; opacity:0.5;"></i>No se encontraron archivos con los filtros actuales.</div>`;
+            return;
+        }
+
+        // Agrupación de Data: Sucursal -> Día Exacto -> Array de Archivos
         const agrupado = {};
-        todasLasSucursales.forEach(s => agrupado[s] = {});
-        
-        repo.forEach(item => {
-            if(item.sucursal) {
-                let sName = item.sucursal.toUpperCase();
-                let datePart = item.fecha || 'Sin Fecha';
-                let dObj = new Date(datePart);
-                let mesAnio = isNaN(dObj) ? 'Otros' : dObj.toLocaleString('es-ES', { month: 'long', year: 'numeric' }).toUpperCase();
-                
-                if(agrupado[sName]) {
-                    if(!agrupado[sName][mesAnio]) agrupado[sName][mesAnio] = [];
-                    agrupado[sName][mesAnio].push(item);
-                }
-            }
+        filtrados.forEach(file => {
+            let suc = file.sucursal.toUpperCase();
+            let fec = file.fecha || 'Sin Fecha Asignada';
+            
+            if(!agrupado[suc]) agrupado[suc] = {};
+            if(!agrupado[suc][fec]) agrupado[suc][fec] = [];
+            
+            agrupado[suc][fec].push(file);
         });
 
-        todasLasSucursales.forEach(suc => {
-            if(currentUser.role === 'sucursal' && currentUser.sucursal.toUpperCase() !== suc) return;
-
+        // Renderizado del HTML Estructurado y Comprimido
+        Object.keys(agrupado).sort().forEach(suc => {
             const sucDiv = document.createElement('div');
             sucDiv.className = "repo-folder-card";
-            sucDiv.style.cssText = "background: #f8fafc; border: 1px solid var(--border); border-radius: 12px; overflow: hidden;";
-            
-            const mesesKeys = Object.keys(agrupado[suc]);
-            let totalArchivos = 0;
-            mesesKeys.forEach(m => totalArchivos += agrupado[suc][m].length);
-            
-            const isEmpty = totalArchivos === 0;
+            sucDiv.style.cssText = "background: #f8fafc; border: 1px solid var(--border); border-radius: 12px; overflow: hidden; transition: all 0.2s ease;";
 
+            // Cabecera Principal de Sucursal
             sucDiv.innerHTML = `
-                <div style="background: var(--primary); color: white; padding: 12px 15px; display: flex; justify-content: space-between; align-items: center; cursor: pointer;" onclick="this.nextElementSibling.classList.toggle('hidden')">
-                    <h3 style="margin:0; font-size: 1rem;"><i class="fas ${isEmpty ? 'fa-folder' : 'fa-folder-open'} text-accent"></i> ${suc}</h3>
-                    <span style="background: rgba(255,255,255,0.2); font-size: 0.75rem; padding: 3px 8px; border-radius: 10px;">${totalArchivos} archivos</span>
+                <div style="background: var(--primary); color: white; padding: 12px 15px; display: flex; justify-content: space-between; align-items: center; cursor: pointer; border-bottom: 2px solid rgba(0,0,0,0.2);" onclick="this.nextElementSibling.classList.toggle('hidden')">
+                    <h3 style="margin:0; font-size: 1rem;"><i class="fas fa-store text-accent"></i> ${suc}</h3>
+                    <span style="background: rgba(255,255,255,0.2); font-size: 0.75rem; padding: 3px 8px; border-radius: 10px;">${Object.keys(agrupado[suc]).length} Días de carga</span>
                 </div>
-                <div class="${isEmpty ? 'hidden' : ''} repo-content-body" style="padding: 10px;">
-                    ${isEmpty ? `<p style="text-align:center; color: var(--secondary); font-size: 0.85rem; margin: 15px 0;">Carpeta vacía</p>` : ``}
-                </div>
+                <div class="repo-content-body" style="padding: 10px; display: flex; flex-direction: column; gap: 8px;"></div>
             `;
+
+            const bodyDiv = sucDiv.querySelector('.repo-content-body');
             
-            if(!isEmpty) {
-                const bodyDiv = sucDiv.querySelector('.repo-content-body');
-                mesesKeys.sort().reverse().forEach(mes => {
-                    const mesDiv = document.createElement('div');
-                    mesDiv.innerHTML = `<h4 style="font-size:0.85rem; color:var(--secondary); border-bottom:1px solid var(--border); padding-bottom:4px; margin:10px 0 5px 0;"><i class="fas fa-calendar-alt"></i> ${mes}</h4><ul style="list-style: none; padding: 0; margin: 0;"></ul>`;
+            // Recorrer los días en orden descendente (Los más nuevos arriba)
+            Object.keys(agrupado[suc]).sort((a,b) => new Date(b) - new Date(a)).forEach(fecha => {
+                const archivosDelDia = agrupado[suc][fecha];
+                
+                const diaDiv = document.createElement('div');
+                diaDiv.style.cssText = "background: white; border: 1px solid var(--border); border-radius: 8px; overflow:hidden; box-shadow: var(--shadow-sm);";
+                
+                // Cabecera Secundaria del Día (Acordeón expandible)
+                // Se expande por defecto solo si se filtró por fecha exacta, si no, viene cerrado para ahorrar espacio.
+                let inicioOculto = fFec ? '' : 'hidden';
+
+                diaDiv.innerHTML = `
+                    <div style="background: #e2e8f0; padding: 8px 12px; font-size:0.85rem; font-weight:bold; color:var(--primary); display:flex; justify-content:space-between; align-items: center; cursor:pointer;" onclick="this.nextElementSibling.classList.toggle('hidden'); this.querySelector('i.fa-chevron-down').classList.toggle('fa-chevron-up')">
+                        <span><i class="fas fa-calendar-alt text-secondary"></i> Fecha de Operación: <span style="color:var(--accent);">${fecha}</span></span>
+                        <div style="display:flex; align-items:center; gap: 10px;">
+                            <span style="font-size:0.75rem; background:var(--accent); color:white; padding:2px 6px; border-radius:10px;">${archivosDelDia.length} Docs</span>
+                            <i class="fas fa-chevron-down text-secondary" style="font-size: 0.8rem; transition: transform 0.3s ease;"></i>
+                        </div>
+                    </div>
+                    <ul class="${inicioOculto}" style="list-style: none; padding: 0; margin: 0; display:block;"></ul>
+                `;
+
+                const ul = diaDiv.querySelector('ul');
+                
+                archivosDelDia.sort((a,b) => new Date(b.fechaSubida) - new Date(a.fechaSubida)).forEach(file => {
+                    const li = document.createElement('li');
+                    li.style.cssText = "padding: 10px; border-top: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; background: #fff;";
                     
-                    const ul = mesDiv.querySelector('ul');
-                    agrupado[suc][mes].sort((a,b) => new Date(b.fecha) - new Date(a.fecha)).forEach(file => {
-                        const li = document.createElement('li');
-                        li.style.cssText = "padding: 10px; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; background: white; margin-bottom: 5px; border-radius: 8px; flex-wrap: wrap; gap: 10px;";
-                        
-                        let botonesHTML = '';
-                        if(currentUser.role === 'master') {
-                            botonesHTML = `
-                                <button class="btn-icon" title="Ver" onclick="window.verDocumentoRepositorio('${file.fileData}', false)"><i class="fas fa-eye text-accent"></i></button>
-                                <button class="btn-icon" title="Descargar" onclick="window.descargarArchivoBase64('${file.fileData}', 'Doc_${file.fecha}_${suc}.pdf')"><i class="fas fa-download text-success"></i></button>
-                                <button class="btn-icon" title="Reemplazar" onclick="window.reemplazarArchivoMaster(${file.id})"><i class="fas fa-sync-alt text-warning"></i></button>
-                                <button class="btn-icon" title="Eliminar" onclick="window.eliminarArchivoMaster(${file.id})"><i class="fas fa-trash text-danger"></i></button>
-                            `;
-                        } else if (currentUser.role === 'regular') {
-                            botonesHTML = `
-                                <button class="btn-icon" title="Ver" onclick="window.verDocumentoRepositorio('${file.fileData}', false)"><i class="fas fa-eye text-accent"></i></button>
-                                <button class="btn-icon" title="Descargar" onclick="window.descargarArchivoBase64('${file.fileData}', 'Doc_${file.fecha}_${suc}.pdf')"><i class="fas fa-download text-success"></i></button>
-                            `;
-                        } else if (currentUser.role === 'sucursal') {
-                            botonesHTML = `
-                                <button class="btn-icon" title="Ver (Solo lectura)" onclick="window.verDocumentoRepositorio('${file.fileData}', true)"><i class="fas fa-eye text-accent"></i></button>
-                                <button class="btn-icon" title="Solicitar Eliminar" onclick="window.solicitarEliminarArchivo(${file.id}, '${file.fecha}')"><i class="fas fa-times-circle text-danger"></i></button>
-                            `;
-                        }
-
-                        // Diferenciar visualmente
-                        let labelPdf = 'CIERRE_COMPLETO';
-                        let colorIcon = 'text-danger';
-                        
-                        if (file.tipoDoc === 'faltante' || file.tipoDoc === 'deposito') {
-                            labelPdf = 'COMPROBANTES';
-                            colorIcon = 'text-success';
-                        } else if (file.tipoDoc === 'incompleto') {
-                            labelPdf = 'CIERRE_INCOMPLETO';
-                            colorIcon = 'text-warning';
-                        } else if (file.tipoDoc === 'cierre') {
-                            labelPdf = 'CIERRE_DIARIO';
-                            colorIcon = 'text-danger';
-                        }
-
-                        li.innerHTML = `
-                            <div style="flex:1;">
-                                <span style="font-size:0.85rem; font-weight:600; color:var(--primary); display:block;"><i class="fas fa-file-pdf ${colorIcon}"></i> ${labelPdf}_${file.fecha} (${file.turno || 'N/A'}).pdf</span>
-                                <span style="font-size:0.7rem; color:var(--secondary);"><i class="far fa-clock"></i> Subido: ${file.fechaSubida}</span>
-                            </div>
-                            <div style="display:flex; gap:5px;">
-                                ${botonesHTML}
-                            </div>
+                    let botonesHTML = '';
+                    if(currentUser.role === 'master') {
+                        botonesHTML = `
+                            <button class="btn-icon" title="Ver" onclick="window.verDocumentoRepositorio('${file.fileData}', false)"><i class="fas fa-eye text-accent"></i></button>
+                            <button class="btn-icon" title="Descargar" onclick="window.descargarArchivoBase64('${file.fileData}', 'Doc_${file.fecha}_${suc}.pdf')"><i class="fas fa-download text-success"></i></button>
+                            <button class="btn-icon" title="Reemplazar" onclick="window.reemplazarArchivoMaster(${file.id})"><i class="fas fa-sync-alt text-warning"></i></button>
+                            <button class="btn-icon" title="Eliminar" onclick="window.eliminarArchivoMaster(${file.id})"><i class="fas fa-trash text-danger"></i></button>
                         `;
-                        ul.appendChild(li);
-                    });
-                    bodyDiv.appendChild(mesDiv);
+                    } else if (currentUser.role === 'regular') {
+                        botonesHTML = `
+                            <button class="btn-icon" title="Ver" onclick="window.verDocumentoRepositorio('${file.fileData}', false)"><i class="fas fa-eye text-accent"></i></button>
+                            <button class="btn-icon" title="Descargar" onclick="window.descargarArchivoBase64('${file.fileData}', 'Doc_${file.fecha}_${suc}.pdf')"><i class="fas fa-download text-success"></i></button>
+                        `;
+                    } else if (currentUser.role === 'sucursal') {
+                        botonesHTML = `
+                            <button class="btn-icon" title="Ver (Solo lectura)" onclick="window.verDocumentoRepositorio('${file.fileData}', true)"><i class="fas fa-eye text-accent"></i></button>
+                            <button class="btn-icon" title="Solicitar Eliminar" onclick="window.solicitarEliminarArchivo(${file.id}, '${file.fecha}')"><i class="fas fa-times-circle text-danger"></i></button>
+                        `;
+                    }
+
+                    // Diferenciar visualmente tipos de PDF
+                    let labelPdf = 'CIERRE_COMPLETO';
+                    let colorIcon = 'text-danger';
+                    
+                    if (file.tipoDoc === 'faltante' || file.tipoDoc === 'deposito') {
+                        labelPdf = 'COMPROBANTES';
+                        colorIcon = 'text-success';
+                    } else if (file.tipoDoc === 'incompleto') {
+                        labelPdf = 'CIERRE_INCOMPLETO';
+                        colorIcon = 'text-warning';
+                    } else if (file.tipoDoc === 'cierre') {
+                        labelPdf = 'CIERRE_DIARIO';
+                        colorIcon = 'text-danger';
+                    }
+
+                    li.innerHTML = `
+                        <div style="flex:1;">
+                            <span style="font-size:0.85rem; font-weight:600; color:var(--primary); display:block;"><i class="fas fa-file-pdf ${colorIcon}"></i> ${labelPdf}_${file.fecha} (${file.turno || 'N/A'}).pdf</span>
+                            <span style="font-size:0.7rem; color:var(--secondary);"><i class="far fa-clock"></i> Subido: ${file.fechaSubida}</span>
+                        </div>
+                        <div style="display:flex; gap:5px;">
+                            ${botonesHTML}
+                        </div>
+                    `;
+                    ul.appendChild(li);
                 });
-            }
-            container.appendChild(sucDiv);
+                
+                bodyDiv.appendChild(diaDiv);
+            });
+            resultsContainer.appendChild(sucDiv);
         });
     }
 
@@ -609,7 +775,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                     repo[index].fileData = ev.target.result;
                     repo[index].fechaSubida = new Date().toLocaleString() + ' (Modificado por Master)';
                     guardarEnFirebase('repoArchivos', repo);
-                    renderizarArbolRepositorio();
+                    renderizarArbolRepositorio(); // Recarga vista
                     registrarAuditoria("REEMPLAZO ARCHIVO", `El Master reemplazó el archivo PDF con ID: ${id}`);
                     agregarNotificacion(`El usuario ${currentUser.user} reemplazó un documento del repositorio.`, 'alerta', 'master');
                     Swal.fire('Éxito', 'Archivo reemplazado correctamente', 'success');
@@ -627,7 +793,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         let repo = JSON.parse(localStorage.getItem('repoArchivos')) || [];
         repo = repo.filter(r => r.id !== id);
         guardarEnFirebase('repoArchivos', repo);
-        renderizarArbolRepositorio();
+        renderizarArbolRepositorio(); // Recarga vista
         registrarAuditoria("ELIMINACIÓN ARCHIVO", `El Master eliminó permanentemente el archivo PDF ID: ${id}`);
         Swal.fire('Eliminado', 'Archivo borrado del sistema.', 'success');
     };
@@ -771,7 +937,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
     sucursalSelect?.addEventListener('change', actualizarUsuarios);
 
-    // NUEVO: Variables para controlar PDFs Múltiples (Cierre y Depósito/Faltante)
     let urlPdfCierreActual = '';
     let urlPdfDepositoActual = '';
 
@@ -839,7 +1004,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 let docComprobante = exactMatches.find(m => m.tipoDoc === 'faltante' || m.tipoDoc === 'deposito');
 
                 let mensajeStatus = '';
-                let statusClass = 'success'; // success, warning, danger
+                let statusClass = 'success'; 
 
                 if(docCierre) {
                     if(docCierre.tipoDoc === 'completo') {
@@ -859,7 +1024,6 @@ document.addEventListener('DOMContentLoaded', async () => {
                             statusClass = 'warning';
                         }
                     } else {
-                        // Legacy support for 'cierre' and 'deposito'
                         if(docComprobante) {
                             mensajeStatus = `Documentos base y adicionales enlazados exitosamente (${fechaVal}).`;
                             pdfToggleContainer.classList.remove('hidden');
@@ -1122,7 +1286,6 @@ document.addEventListener('DOMContentLoaded', async () => {
         registrarAuditoria("AGREGÓ FILA", "Añadió una nueva fila en el Cierre Diario");
     });
 
-    // NUEVO: Cálculos Avanzados de Sobrante/Faltante
     function calcularTotales() {
         let tC = 0, tF = 0;
         let discrepancias = [];
@@ -1131,19 +1294,19 @@ document.addEventListener('DOMContentLoaded', async () => {
             const formaPago = row.querySelector('.m-forma').value;
             const c = parseFloat(row.querySelector('.m-cierre').value) || 0;
             const f = parseFloat(row.querySelector('.m-fisico').value) || 0;
-            const d = c - f; // Positivo: Faltante, Negativo: Sobrante
+            const d = c - f; 
             
             const diffSpan = row.querySelector('.m-diff');
             diffSpan.textContent = d.toFixed(2);
             
             if (d > 0.001) {
-                diffSpan.style.color = 'var(--danger)'; // Rojo Faltante
+                diffSpan.style.color = 'var(--danger)';
                 discrepancias.push({ forma: formaPago, monto: Math.abs(d), tipo: 'FALTANTE', color: 'var(--danger)' });
             } else if (d < -0.001) {
-                diffSpan.style.color = 'var(--success)'; // Verde Sobrante
+                diffSpan.style.color = 'var(--success)';
                 discrepancias.push({ forma: formaPago, monto: Math.abs(d), tipo: 'SOBRANTE', color: 'var(--success)' });
             } else {
-                diffSpan.style.color = 'var(--secondary)'; // Gris Cuadrado
+                diffSpan.style.color = 'var(--secondary)';
             }
 
             tC += c; tF += f;
@@ -1156,7 +1319,6 @@ document.addEventListener('DOMContentLoaded', async () => {
         const totalDifElement = document.getElementById('totalDiferencia');
         totalDifElement.textContent = difTotalGlobal.toFixed(2);
 
-        // Desglose de discrepancias abajo
         const panelDisc = document.getElementById('discrepanciasList');
         if(panelDisc) {
             if(discrepancias.length > 0) {
@@ -1190,7 +1352,6 @@ document.addEventListener('DOMContentLoaded', async () => {
             if (tC === 0 && tF === 0) { proporcionCuadrada = 100; proporcionDiferencia = 0; }
             chartCierre.data.datasets[0].data = [proporcionCuadrada, proporcionDiferencia];
             
-            // Cambiar color del anillo si es sobrante o faltante global
             chartCierre.data.datasets[0].backgroundColor[1] = difTotalGlobal < 0 ? '#00875a' : '#de350b';
             chartCierre.update();
         }
@@ -1436,7 +1597,6 @@ document.addEventListener('DOMContentLoaded', async () => {
         const c = historial.find(x => x.id === id);
         if(!c) return;
         
-        // Buscar PDFs en el repositorio
         const matchesPdf = repo.filter(r => r.sucursal.toUpperCase() === c.sucursal.toUpperCase() && r.fecha === c.fechaCierre && r.turno === c.usuario);
         
         let pdfSection = '';
