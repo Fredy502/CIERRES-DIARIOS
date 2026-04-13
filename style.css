@@ -54,7 +54,7 @@ body {
 /* Login */
 .login-overlay {
     position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-    background-image: url('../fondo-dental.jpg');
+    background-image: url('fondo-dental.jpg');
     background-size: cover; background-position: center; background-repeat: no-repeat;
     z-index: 9999; display: flex; justify-content: center; align-items: center; padding: 20px;
 }
