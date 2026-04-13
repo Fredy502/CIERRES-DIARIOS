@@ -19,6 +19,15 @@ async function guardarEnFirebase(key, data) {
 
 document.addEventListener('DOMContentLoaded', async () => {
 
+    // --- NUEVO: Control del menú móvil ---
+    const btnMobileMenu = document.getElementById('btnMobileMenu');
+    const sidebarMenu = document.getElementById('sidebarMenu');
+    if (btnMobileMenu && sidebarMenu) {
+        btnMobileMenu.addEventListener('click', () => {
+            sidebarMenu.classList.toggle('open');
+        });
+    }
+
     // --- 0. SINCRONIZACIÓN INICIAL CON EL BACKEND ---
     async function sincronizarDesdeFirebase() {
         const btnLogin = document.getElementById('btnLogin');
@@ -77,7 +86,6 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     let currentUser = null;
 
-    // MEJORA 1: Turnos y nomenclaturas corregidas y estandarizadas (EJ: USUARIO PROVISIONAL)
     const datosUsuarios = {
         "1": { "ICALDERO01": "CH1-", "USUARIO PROVISIONAL": "CN3-" },
         "2": { "RSNXAMXX01": "SN17-", "RSNXPMXX01": "SN18-", "RELIASXX01": "SN19-", "USUARIO PROVISIONAL": "SN13-" },
@@ -209,8 +217,6 @@ document.addEventListener('DOMContentLoaded', async () => {
                         turnoCargaPdf.innerHTML += `<option value="${u}">${u}</option>`;
                     });
                 }
-                
-                // NUEVO: Sincronizar Responsable al iniciar sesión como sucursal
                 turnoCargaPdf.dispatchEvent(new Event('change'));
             }
         }
@@ -221,6 +227,9 @@ document.addEventListener('DOMContentLoaded', async () => {
         tabContents.forEach(tab => tab.classList.add('hidden'));
         document.getElementById(navId).classList.add('active');
         document.getElementById(tabId).classList.remove('hidden');
+        
+        // Cerrar sidebar en móviles al clickear un tab
+        if(sidebarMenu) sidebarMenu.classList.remove('open');
         
         registrarAuditoria("NAVEGACIÓN", `El usuario accedió a la pestaña: ${document.getElementById(navId).innerText.trim()}`);
         
@@ -334,7 +343,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     const dropzonePdf = document.getElementById('dropzonePdf');
     let archivoSeleccionadoData = null; 
 
-    // NUEVO: Sincronizar Responsable en Carga PDF al cambiar de turno
     document.getElementById('turnoCargaPdf')?.addEventListener('change', (e) => {
         const responsableInput = document.getElementById('responsableCargaPdf');
         if (responsableInput) responsableInput.value = e.target.value; 
@@ -397,6 +405,11 @@ document.addEventListener('DOMContentLoaded', async () => {
         if (!fecha) return Swal.fire('Error', 'Debes indicar la fecha del cierre', 'error');
         const turnoSel = document.getElementById('turnoCargaPdf');
         if (turnoSel && !turnoSel.value) return Swal.fire('Error', 'Debes seleccionar el turno', 'error');
+        
+        // NUEVO: Rescatar el tipo de documento para separarlos en la DB
+        const tipoDocSel = document.getElementById('tipoDocCarga');
+        const tipoDocVal = tipoDocSel ? tipoDocSel.value : 'cierre';
+        const nombreDocDisplay = tipoDocVal === 'cierre' ? 'Cierre Diario' : 'Boleta de Depósito';
 
         const repo = JSON.parse(localStorage.getItem('repoArchivos')) || [];
         const isoHoy = new Date().toISOString().split('T')[0];
@@ -406,6 +419,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             sucursal: currentUser.sucursal,
             turno: turnoSel ? turnoSel.value : 'N/A', 
             fecha: fecha,
+            tipoDoc: tipoDocVal, // Guardamos la bandera
             fechaSubida: new Date().toLocaleString(),
             fechaCargaISO: isoHoy,
             fileData: archivoSeleccionadoData
@@ -413,10 +427,10 @@ document.addEventListener('DOMContentLoaded', async () => {
 
         guardarEnFirebase('repoArchivos', repo);
         
-        registrarAuditoria("SUBIDA EXITOSA", `Sucursal ${currentUser.sucursal} cargó archivo PDF (Turno: ${turnoSel?turnoSel.value:''}) correspondiente al cierre del ${fecha}`);
-        agregarNotificacion(`Sucursal ${currentUser.sucursal.toUpperCase()} cargó su documento del día ${fecha} (Turno: ${turnoSel?turnoSel.value:''})`, 'info', 'master');
+        registrarAuditoria("SUBIDA EXITOSA", `Sucursal ${currentUser.sucursal} cargó PDF de ${nombreDocDisplay} (Turno: ${turnoSel?turnoSel.value:''}) para el ${fecha}`);
+        agregarNotificacion(`Sucursal ${currentUser.sucursal.toUpperCase()} cargó ${nombreDocDisplay} del ${fecha} (Turno: ${turnoSel?turnoSel.value:''})`, 'info', 'master');
 
-        Swal.fire('Éxito', 'Documento subido correctamente al repositorio', 'success');
+        Swal.fire('Éxito', `${nombreDocDisplay} subido correctamente al repositorio.`, 'success');
         
         archivoPdf.value = '';
         archivoSeleccionadoData = null;
@@ -448,7 +462,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     });
 
 
-    // --- 5. REPOSITORIO DE ARCHIVOS PROFESIONAL AGRUPADO (MES/AÑO) ---
+    // --- 5. REPOSITORIO DE ARCHIVOS ---
     const todasLasSucursales = [
         "CHIQUIMULA", "SAN NICOLAS 1", "SIXTINO", "FRUTAL", 
         "METRONORTE", "NARANJO", "SAN NICOLAS 2", "PERI ROOSEVELT"
@@ -510,20 +524,20 @@ document.addEventListener('DOMContentLoaded', async () => {
                     const ul = mesDiv.querySelector('ul');
                     agrupado[suc][mes].sort((a,b) => new Date(b.fecha) - new Date(a.fecha)).forEach(file => {
                         const li = document.createElement('li');
-                        li.style.cssText = "padding: 10px; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; background: white; margin-bottom: 5px; border-radius: 8px;";
+                        li.style.cssText = "padding: 10px; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; background: white; margin-bottom: 5px; border-radius: 8px; flex-wrap: wrap; gap: 10px;";
                         
                         let botonesHTML = '';
                         if(currentUser.role === 'master') {
                             botonesHTML = `
                                 <button class="btn-icon" title="Ver" onclick="window.verDocumentoRepositorio('${file.fileData}', false)"><i class="fas fa-eye text-accent"></i></button>
-                                <button class="btn-icon" title="Descargar" onclick="window.descargarArchivoBase64('${file.fileData}', 'Cierre_${file.fecha}_${suc}.pdf')"><i class="fas fa-download text-success"></i></button>
+                                <button class="btn-icon" title="Descargar" onclick="window.descargarArchivoBase64('${file.fileData}', 'Doc_${file.fecha}_${suc}.pdf')"><i class="fas fa-download text-success"></i></button>
                                 <button class="btn-icon" title="Reemplazar" onclick="window.reemplazarArchivoMaster(${file.id})"><i class="fas fa-sync-alt text-warning"></i></button>
                                 <button class="btn-icon" title="Eliminar" onclick="window.eliminarArchivoMaster(${file.id})"><i class="fas fa-trash text-danger"></i></button>
                             `;
                         } else if (currentUser.role === 'regular') {
                             botonesHTML = `
                                 <button class="btn-icon" title="Ver" onclick="window.verDocumentoRepositorio('${file.fileData}', false)"><i class="fas fa-eye text-accent"></i></button>
-                                <button class="btn-icon" title="Descargar" onclick="window.descargarArchivoBase64('${file.fileData}', 'Cierre_${file.fecha}_${suc}.pdf')"><i class="fas fa-download text-success"></i></button>
+                                <button class="btn-icon" title="Descargar" onclick="window.descargarArchivoBase64('${file.fileData}', 'Doc_${file.fecha}_${suc}.pdf')"><i class="fas fa-download text-success"></i></button>
                             `;
                         } else if (currentUser.role === 'sucursal') {
                             botonesHTML = `
@@ -532,10 +546,13 @@ document.addEventListener('DOMContentLoaded', async () => {
                             `;
                         }
 
-                        // MEJORA: Mostrar visualmente a qué turno pertenece este PDF
+                        // Diferenciar visualmente si es cierre o depósito
+                        let labelPdf = file.tipoDoc === 'deposito' ? 'DEPOSITO_ATRASADO' : 'CIERRE';
+                        let colorIcon = file.tipoDoc === 'deposito' ? 'text-success' : 'text-danger';
+
                         li.innerHTML = `
                             <div style="flex:1;">
-                                <span style="font-size:0.85rem; font-weight:600; color:var(--primary); display:block;"><i class="fas fa-file-pdf text-danger"></i> Cierre_${file.fecha} (${file.turno || 'N/A'}).pdf</span>
+                                <span style="font-size:0.85rem; font-weight:600; color:var(--primary); display:block;"><i class="fas fa-file-pdf ${colorIcon}"></i> ${labelPdf}_${file.fecha} (${file.turno || 'N/A'}).pdf</span>
                                 <span style="font-size:0.7rem; color:var(--secondary);"><i class="far fa-clock"></i> Subido: ${file.fechaSubida}</span>
                             </div>
                             <div style="display:flex; gap:5px;">
@@ -610,7 +627,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         });
         if(motivo) {
             const reqs = JSON.parse(localStorage.getItem('solicitudesEstuconta')) || [];
-            reqs.push({id: Date.now(), fecha: new Date().toLocaleDateString(), sucursal: currentUser.sucursal, usuario: currentUser.user, tipo: 'Eliminación Archivo PDF', archivoAfectado: `Cierre_${fecha}.pdf`, descripcion: motivo, estado: 'Pendiente'});
+            reqs.push({id: Date.now(), fecha: new Date().toLocaleDateString(), sucursal: currentUser.sucursal, usuario: currentUser.user, tipo: 'Eliminación Archivo PDF', archivoAfectado: `Doc_${fecha}.pdf`, descripcion: motivo, estado: 'Pendiente'});
             guardarEnFirebase('solicitudesEstuconta', reqs);
             registrarAuditoria("SOLICITUD CREADA", `Se solicitó la eliminación del PDF de fecha ${fecha}. Razón: ${motivo}`);
             agregarNotificacion(`La sucursal ${currentUser.sucursal} solicitó eliminar un PDF.`, 'alerta', 'master');
@@ -732,7 +749,6 @@ document.addEventListener('DOMContentLoaded', async () => {
             turnoSelect.innerHTML = '';
             usuarios.forEach(u => { const op = document.createElement('option'); op.value = u; op.textContent = u; turnoSelect.appendChild(op); });
             
-            // NUEVO: Actualizar el campo responsable automáticamente
             const respSelect = document.getElementById('responsableSelect');
             if (respSelect) respSelect.value = turnoSelect.value;
         }
@@ -741,7 +757,24 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
     sucursalSelect?.addEventListener('change', actualizarUsuarios);
 
-    // MEJORA 2: Lógica rediseñada para soportar múltiples PDFs al día según el Turno exacto
+    // NUEVO: Variables para controlar PDFs Múltiples (Cierre y Depósito)
+    let urlPdfCierreActual = '';
+    let urlPdfDepositoActual = '';
+
+    document.getElementById('btnVerCierrePdf')?.addEventListener('click', (e) => {
+        document.getElementById('btnVerCierrePdf').classList.add('active');
+        document.getElementById('btnVerDepositoPdf').classList.remove('active');
+        let srcUrl = urlPdfCierreActual;
+        if (srcUrl) document.getElementById('inlinePdfFrame').src = srcUrl.includes('#toolbar=') ? srcUrl.replace('#toolbar=0', '#toolbar=1&navpanes=0') : srcUrl + '#toolbar=1&navpanes=0';
+    });
+
+    document.getElementById('btnVerDepositoPdf')?.addEventListener('click', (e) => {
+        document.getElementById('btnVerDepositoPdf').classList.add('active');
+        document.getElementById('btnVerCierrePdf').classList.remove('active');
+        let srcUrl = urlPdfDepositoActual;
+        if (srcUrl) document.getElementById('inlinePdfFrame').src = srcUrl.includes('#toolbar=') ? srcUrl.replace('#toolbar=0', '#toolbar=1&navpanes=0') : srcUrl + '#toolbar=1&navpanes=0';
+    });
+
     function verificarPdfRepositorio() {
         const selectElement = document.getElementById('sucursalSelect');
         const fInput = document.getElementById('fechaInput');
@@ -750,6 +783,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         const pdfContainer = document.getElementById('inlinePdfContainer');
         const pdfFrame = document.getElementById('inlinePdfFrame');
         const turnoSel = document.getElementById('turnoSelect');
+        const pdfToggleContainer = document.getElementById('pdfToggleContainer');
 
         if (!selectElement || !fInput || !statusDiv) return;
 
@@ -764,6 +798,9 @@ document.addEventListener('DOMContentLoaded', async () => {
         fRecibido.style.backgroundColor = '';
         fRecibido.style.cursor = '';
         fRecibido.value = '';
+        pdfToggleContainer.classList.add('hidden');
+        urlPdfCierreActual = '';
+        urlPdfDepositoActual = '';
 
         if (!fechaVal || !sucursalNombre) {
             statusDiv.style.display = 'none';
@@ -771,33 +808,47 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
 
         const repo = JSON.parse(localStorage.getItem('repoArchivos')) || [];
-        // Filtra todos los PDFs que existan para esa sucursal en ese día exacto
         const matches = repo.filter(r => r.sucursal.toUpperCase() === sucursalNombre.toUpperCase() && r.fecha === fechaVal);
 
         statusDiv.style.display = 'flex';
 
         if (matches.length > 0) {
-            // Busca coincidencia exacta con el Turno seleccionado
-            let exactMatch = matches.find(m => m.turno === turnoVal);
+            let exactMatches = matches.filter(m => m.turno === turnoVal);
             
-            // Fallback: si hay solo 1 PDF subido sin especificar turno (historial antiguo), enlazarlo.
-            if (!exactMatch && matches.length === 1 && (!matches[0].turno || matches[0].turno === 'N/A')) {
-                exactMatch = matches[0];
+            if (exactMatches.length === 0 && matches.length > 0 && (!matches[0].turno || matches[0].turno === 'N/A')) {
+                exactMatches = matches; 
             }
 
-            if (exactMatch) {
+            if (exactMatches.length > 0) {
+                // Separar Cierre y Depósito
+                let docCierre = exactMatches.find(m => m.tipoDoc !== 'deposito');
+                let docDeposito = exactMatches.find(m => m.tipoDoc === 'deposito');
+
+                let mensajeStatus = '';
+                if(docCierre && docDeposito) {
+                    mensajeStatus = `Documento de Cierre y Boleta de Depósito enlazados exitosamente (${fechaVal}). Turno: ${docCierre.turno || 'N/A'}`;
+                    pdfToggleContainer.classList.remove('hidden');
+                    document.getElementById('btnVerCierrePdf').classList.add('active');
+                    document.getElementById('btnVerDepositoPdf').classList.remove('active');
+                } else if (docCierre) {
+                    mensajeStatus = `Documento de Cierre enlazado exitosamente (${fechaVal}). Turno: ${docCierre.turno || 'N/A'}`;
+                } else if (docDeposito) {
+                    mensajeStatus = `ATENCIÓN: Solo se encontró Boleta de Depósito para (${fechaVal}). Faltante de cargar Cierre Diario.`;
+                }
+
                 statusDiv.style.background = 'rgba(5, 150, 105, 0.08)';
                 statusDiv.style.border = '1px dashed var(--success)';
                 statusDiv.innerHTML = `
                     <div>
-                        <span style="color: var(--success); font-weight: 600;"><i class="fas fa-check-circle"></i> Documento PDF enlazado exitosamente (${fechaVal}). Turno: ${exactMatch.turno || 'N/A'}</span>
+                        <span style="color: var(--success); font-weight: 600;"><i class="fas fa-check-circle"></i> ${mensajeStatus}</span>
                     </div>
                 `;
 
-                if (exactMatch.fechaCargaISO) {
-                    fRecibido.value = exactMatch.fechaCargaISO;
+                let docBaseParaFecha = docCierre || docDeposito;
+                if (docBaseParaFecha.fechaCargaISO) {
+                    fRecibido.value = docBaseParaFecha.fechaCargaISO;
                 } else {
-                    const parts = exactMatch.fechaSubida.split(',')[0].split('/');
+                    const parts = docBaseParaFecha.fechaSubida.split(',')[0].split('/');
                     if(parts.length === 3) {
                         const isoD = `${parts[2]}-${parts[1].padStart(2, '0')}-${parts[0].padStart(2, '0')}`;
                         fRecibido.value = isoD;
@@ -810,7 +861,11 @@ document.addEventListener('DOMContentLoaded', async () => {
                 fRecibido.style.cursor = 'not-allowed';
 
                 pdfContainer.style.display = 'flex';
-                let srcUrl = exactMatch.fileData;
+                
+                if(docCierre) urlPdfCierreActual = docCierre.fileData;
+                if(docDeposito) urlPdfDepositoActual = docDeposito.fileData;
+
+                let srcUrl = urlPdfCierreActual || urlPdfDepositoActual;
                 if (!srcUrl.includes('#toolbar=')) {
                     srcUrl += '#toolbar=1&navpanes=0'; 
                 } else {
@@ -818,10 +873,8 @@ document.addEventListener('DOMContentLoaded', async () => {
                 }
                 pdfFrame.src = srcUrl;
 
-                registrarAuditoria("AUTO-DETECCIÓN PDF", `El sistema enlazó automáticamente el PDF de ${sucursalNombre} para el día ${fechaVal} (Turno: ${exactMatch.turno})`);
             } else {
-                // Hay PDFs para ese día, pero no corresponden al turno actual que el usuario visualiza
-                const turnosCargados = matches.map(m => m.turno || 'N/A').join(', ');
+                const turnosCargados = [...new Set(matches.map(m => m.turno || 'N/A'))].join(', ');
                 statusDiv.style.background = 'rgba(245, 158, 11, 0.08)';
                 statusDiv.style.border = '1px dashed var(--warning)';
                 statusDiv.innerHTML = `
@@ -846,9 +899,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         registrarAuditoria("CAMBIO FECHA", `Cambió fecha del Cierre Diario a: ${document.getElementById('fechaInput').value}`);
     });
 
-    // Nuevo disparador para cuando el usuario cambia el turno manualmente y así traiga el PDF correcto
     document.getElementById('turnoSelect')?.addEventListener('change', (e) => {
-        // NUEVO: Sincronizar responsable al cambiar de turno en panel de Cierre
         const responsableInput = document.getElementById('responsableSelect');
         if (responsableInput) responsableInput.value = e.target.value;
         verificarPdfRepositorio();
@@ -1027,31 +1078,76 @@ document.addEventListener('DOMContentLoaded', async () => {
         registrarAuditoria("AGREGÓ FILA", "Añadió una nueva fila en el Cierre Diario");
     });
 
+    // NUEVO: Cálculos Avanzados de Sobrante/Faltante
     function calcularTotales() {
         let tC = 0, tF = 0;
+        let discrepancias = [];
+
         document.querySelectorAll('#tablaPagos tbody tr').forEach(row => {
+            const formaPago = row.querySelector('.m-forma').value;
             const c = parseFloat(row.querySelector('.m-cierre').value) || 0;
             const f = parseFloat(row.querySelector('.m-fisico').value) || 0;
-            const d = c - f; row.querySelector('.m-diff').textContent = d.toFixed(2);
+            const d = c - f; // Positivo: Faltante, Negativo: Sobrante
+            
+            const diffSpan = row.querySelector('.m-diff');
+            diffSpan.textContent = d.toFixed(2);
+            
+            if (d > 0.001) {
+                diffSpan.style.color = 'var(--danger)'; // Rojo Faltante
+                discrepancias.push({ forma: formaPago, monto: Math.abs(d), tipo: 'FALTANTE', color: 'var(--danger)' });
+            } else if (d < -0.001) {
+                diffSpan.style.color = 'var(--success)'; // Verde Sobrante
+                discrepancias.push({ forma: formaPago, monto: Math.abs(d), tipo: 'SOBRANTE', color: 'var(--success)' });
+            } else {
+                diffSpan.style.color = 'var(--secondary)'; // Gris Cuadrado
+            }
+
             tC += c; tF += f;
         });
         
         document.getElementById('totalCierre').textContent = tC.toFixed(2);
         document.getElementById('totalFisico').textContent = tF.toFixed(2);
-        document.getElementById('totalDiferencia').textContent = (tC - tF).toFixed(2);
+        
+        const difTotalGlobal = tC - tF;
+        const totalDifElement = document.getElementById('totalDiferencia');
+        totalDifElement.textContent = difTotalGlobal.toFixed(2);
+
+        // Desglose de discrepancias abajo
+        const panelDisc = document.getElementById('discrepanciasList');
+        if(panelDisc) {
+            if(discrepancias.length > 0) {
+                panelDisc.innerHTML = discrepancias.map(x => 
+                    `<span style="font-size: 0.85rem; font-weight: 600; color: ${x.color};">
+                        <i class="fas ${x.tipo==='FALTANTE'?'fa-exclamation-circle':'fa-arrow-up'}"></i> 
+                        ${x.forma}: ${x.tipo} de Q${x.monto.toFixed(2)}
+                    </span>`
+                ).join('');
+            } else {
+                panelDisc.innerHTML = '';
+            }
+        }
 
         const displayCierre = document.getElementById('displayTotalCierre');
         const displayDiff = document.getElementById('displayTotalDiff');
         
         if (displayCierre) displayCierre.textContent = 'Q ' + tC.toFixed(2);
-        let diffAbs = Math.abs(tC - tF);
-        if (displayDiff) displayDiff.textContent = 'Q ' + diffAbs.toFixed(2);
+        
+        let diffAbs = Math.abs(difTotalGlobal);
+        if (displayDiff) {
+            displayDiff.textContent = 'Q ' + diffAbs.toFixed(2);
+            if(difTotalGlobal > 0.001) displayDiff.style.color = 'var(--danger)';
+            else if(difTotalGlobal < -0.001) displayDiff.style.color = 'var(--success)';
+            else displayDiff.style.color = 'var(--secondary)';
+        }
 
         if (chartCierre) {
             let proporcionCuadrada = tF;
             let proporcionDiferencia = diffAbs;
             if (tC === 0 && tF === 0) { proporcionCuadrada = 100; proporcionDiferencia = 0; }
             chartCierre.data.datasets[0].data = [proporcionCuadrada, proporcionDiferencia];
+            
+            // Cambiar color del anillo si es sobrante o faltante global
+            chartCierre.data.datasets[0].backgroundColor[1] = difTotalGlobal < 0 ? '#00875a' : '#de350b';
             chartCierre.update();
         }
     }
@@ -1071,7 +1167,6 @@ document.addEventListener('DOMContentLoaded', async () => {
         let historial = JSON.parse(localStorage.getItem('historialCierresEstuconta')) || [];
         
         if (!window.cierreEnEdicionId) {
-            // MEJORA 3: Incluye el turno en la validación para permitir guardar Turno AM y Turno PM el mismo día sin chocar
             const existeCierre = historial.find(c => c.sucursal.toUpperCase() === sucursalNombre.toUpperCase() && c.fechaCierre === fechaCierreInput && c.usuario === turnoActual);
             if (existeCierre) {
                 return Swal.fire({
@@ -1210,7 +1305,6 @@ document.addEventListener('DOMContentLoaded', async () => {
 
 
     // --- 7. HISTORIAL BASE DE DATOS ---
-    
     document.getElementById('filtroSucursal')?.addEventListener('change', (e) => {
         const fUser = document.getElementById('filtroUsuario');
         if(!fUser) return;
@@ -1223,9 +1317,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
     });
 
-    document.getElementById('btnAplicarFiltros')?.addEventListener('click', () => {
-        cargarHistorialBD();
-    });
+    document.getElementById('btnAplicarFiltros')?.addEventListener('click', () => { cargarHistorialBD(); });
 
     document.getElementById('btnLimpiarFiltrosBD')?.addEventListener('click', () => {
         document.getElementById('filtroSucursal').value = '';
@@ -1250,7 +1342,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         if (fUsu) filtrados = filtrados.filter(h => h.usuario === fUsu);
 
         if (filtrados.length === 0) {
-            tbody.innerHTML = `<tr><td colspan="9" style="text-align: center;">No hay registros disponibles.</td></tr>`;
+            tbody.innerHTML = `<tr><td colspan="8" style="text-align: center;">No hay registros disponibles.</td></tr>`;
             return;
         }
 
@@ -1266,7 +1358,6 @@ document.addEventListener('DOMContentLoaded', async () => {
 
             tr.innerHTML = `
                 <td>${c.fechaGuardado || '-'}</td>
-                <td>${c.fechaRecibido || '-'}</td>
                 <td>${c.fechaCierre}</td>
                 <td>${c.sucursal}</td>
                 <td>${c.usuario}</td>
@@ -1301,59 +1392,48 @@ document.addEventListener('DOMContentLoaded', async () => {
         const c = historial.find(x => x.id === id);
         if(!c) return;
         
-        // Carga exactamente el PDF del usuario/turno que generó este cierre (para evitar PDFs cruzados)
-        const matchPdf = repo.find(r => r.sucursal.toUpperCase() === c.sucursal.toUpperCase() && r.fecha === c.fechaCierre && r.turno === c.usuario);
+        // Buscar PDF de Cierre y de Depósito
+        const matchesPdf = repo.filter(r => r.sucursal.toUpperCase() === c.sucursal.toUpperCase() && r.fecha === c.fechaCierre && r.turno === c.usuario);
         
         let pdfSection = '';
-        if (matchPdf) {
+        if (matchesPdf.length > 0) {
+            let btnList = matchesPdf.map(m => {
+                let textBtn = m.tipoDoc === 'deposito' ? 'Ver Boleta de Depósito' : 'Ver PDF de Cierre Diario';
+                return `<button class="btn btn-verde" style="margin: 5px; font-size: 0.85rem; padding: 10px 15px;" onclick="window.verDocumentoRepositorio('${m.fileData}', false)">
+                            <i class="fas fa-file-pdf"></i> ${textBtn}
+                        </button>`;
+            }).join('');
+
             pdfSection = `
                 <div style="margin-top: 25px; text-align: center; background: rgba(5, 150, 105, 0.08); padding: 15px; border-radius: 8px; border: 1px dashed var(--success);">
-                    <p style="margin: 0 0 12px 0; color: var(--success); font-weight: 600;"><i class="fas fa-check-circle"></i> Documento PDF adjunto disponible en el Repositorio (${c.fechaCierre} - Turno: ${matchPdf.turno})</p>
-                    <button class="btn btn-verde" style="margin: 0 auto; justify-content: center; font-size: 0.95rem; padding: 12px 25px;" onclick="window.verDocumentoRepositorio('${matchPdf.fileData}', false)">
-                        <i class="fas fa-file-pdf"></i> Visualizar Archivo
-                    </button>
+                    <p style="margin: 0 0 12px 0; color: var(--success); font-weight: 600;"><i class="fas fa-check-circle"></i> Documento(s) adjunto(s) disponibles en el Repositorio</p>
+                    ${btnList}
                 </div>
             `;
         } else {
              pdfSection = `
                 <div style="margin-top: 25px; text-align: center; background: rgba(220, 38, 38, 0.05); padding: 15px; border-radius: 8px; border: 1px dashed rgba(220, 38, 38, 0.4);">
-                    <p style="margin: 0; color: var(--danger); font-size: 0.9rem;"><i class="fas fa-exclamation-triangle"></i> No hay un documento PDF consolidado cargado en el repositorio para el turno y fecha indicados.</p>
+                    <p style="margin: 0; color: var(--danger); font-size: 0.9rem;"><i class="fas fa-exclamation-triangle"></i> No hay documentos PDF consolidados en el repositorio para este turno y fecha.</p>
                 </div>
             `;
         }
 
         let html = `
             <div style="margin-bottom: 20px; background: #f8fafc; padding: 20px; border-radius: 12px; border: 1px solid var(--border);">
-                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px;">
-                    <p style="margin: 0;"><strong><i class="fas fa-save text-accent"></i> Guardado el:</strong><br> <span style="font-size: 1.1rem; color: var(--primary);">${c.fechaGuardado || '-'}</span></p>
-                    <p style="margin: 0;"><strong><i class="fas fa-store text-accent"></i> Sucursal:</strong><br> <span style="font-size: 1.1rem; color: var(--primary);">${c.sucursal}</span></p>
-                    <p style="margin: 0;"><strong><i class="fas fa-calendar-day text-accent"></i> Fecha Cierre:</strong><br> <span style="font-size: 1.1rem; color: var(--primary);">${c.fechaCierre}</span></p>
-                    <p style="margin: 0;"><strong><i class="fas fa-user-circle text-accent"></i> Usuario / Turno:</strong><br> <span style="font-size: 1.1rem; color: var(--primary);">${c.usuario}</span></p>
-                    <p style="margin: 0;"><strong><i class="fas fa-inbox text-accent"></i> Fecha Recibido:</strong><br> <span style="font-size: 1.1rem; color: var(--primary);">${c.fechaRecibido || '<em style="color:#94a3b8;">No especificada</em>'}</span></p>
-                </div>
-                
-                <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 15px; margin-top: 20px; padding: 15px; background: white; border-radius: 10px; border: 1px solid var(--border); box-shadow: var(--shadow-sm);">
-                    <div style="text-align: center; border-right: 1px solid var(--border);">
-                        <span style="font-size: 0.75rem; color: var(--secondary); font-weight: 700;">TOTAL SISTEMA</span><br>
-                        <strong style="font-size: 1.4rem; color: var(--primary);">Q ${c.totalCierre || '0.00'}</strong>
-                    </div>
-                    <div style="text-align: center; border-right: 1px solid var(--border);">
-                        <span style="font-size: 0.75rem; color: var(--secondary); font-weight: 700;">TOTAL FÍSICO</span><br>
-                        <strong style="font-size: 1.4rem; color: var(--success);">Q ${c.totalFisico || '0.00'}</strong>
-                    </div>
-                    <div style="text-align: center;">
-                        <span style="font-size: 0.75rem; color: var(--secondary); font-weight: 700;">DIFERENCIA TOTAL</span><br>
-                        <strong style="font-size: 1.4rem; color: var(--danger);">Q ${c.totalDiferencia || '0.00'}</strong>
-                    </div>
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 15px;">
+                    <p style="margin: 0;"><strong><i class="fas fa-save text-accent"></i> Guardado el:</strong><br> <span style="font-size: 1rem; color: var(--primary);">${c.fechaGuardado || '-'}</span></p>
+                    <p style="margin: 0;"><strong><i class="fas fa-store text-accent"></i> Sucursal:</strong><br> <span style="font-size: 1rem; color: var(--primary);">${c.sucursal}</span></p>
+                    <p style="margin: 0;"><strong><i class="fas fa-calendar-day text-accent"></i> Fecha Cierre:</strong><br> <span style="font-size: 1rem; color: var(--primary);">${c.fechaCierre}</span></p>
+                    <p style="margin: 0;"><strong><i class="fas fa-user-circle text-accent"></i> Usuario:</strong><br> <span style="font-size: 1rem; color: var(--primary);">${c.usuario}</span></p>
                 </div>
             </div>
             
             <h3 style="font-size: 1.1rem; margin-bottom: 10px; color: var(--primary);"><i class="fas fa-list-alt text-accent"></i> Detalle Desglosado de Documentación</h3>
             <div style="overflow-x: auto; border: 1px solid var(--border); border-radius: 8px;">
-                <table class="modern-table" style="width: 100%; font-size: 0.85rem; margin: 0;">
+                <table class="modern-table" style="width: 100%; font-size: 0.85rem; margin: 0; min-width:600px;">
                     <thead style="background: var(--primary); color: white;">
                         <tr>
-                            <th style="color: white; border-right: 1px solid rgba(255,255,255,0.1);">Forma Pago / Boletas Adjuntas</th>
+                            <th style="color: white; border-right: 1px solid rgba(255,255,255,0.1);">Forma Pago / Boletas</th>
                             <th style="color: white; text-align: right; border-right: 1px solid rgba(255,255,255,0.1);">Cierre (Q)</th>
                             <th style="color: white; text-align: right; border-right: 1px solid rgba(255,255,255,0.1);">Físico (Q)</th>
                             <th style="color: white; text-align: right;">Diferencia (Q)</th>
@@ -1373,11 +1453,23 @@ document.addEventListener('DOMContentLoaded', async () => {
             if(boletasArr.length > 0) {
                 boletasHtml = boletasArr.map(b => 
                     `<div style="font-size:0.75rem; color:#475569; padding:4px 0 4px 10px; border-left:2px solid var(--accent); margin-top:5px; background: rgba(0,0,0,0.02);">
-                        <strong>${b.banco || '-'}</strong> | Doc: ${b.documento || '-'} | F.Doc: ${b.fechaDoc || '-'} <span style="float:right; color:var(--primary); font-weight:bold;">Q${parseFloat(b.monto||0).toFixed(2)}</span>
+                        <strong>${b.banco || '-'}</strong> | Doc: ${b.documento || '-'} <span style="float:right; color:var(--primary); font-weight:bold;">Q${parseFloat(b.monto||0).toFixed(2)}</span>
                     </div>`
                 ).join('');
             } else {
                 boletasHtml = `<div style="font-size:0.75rem; color:#94a3b8; padding-left:10px; margin-top:4px;">Sin boletas registradas</div>`;
+            }
+
+            let diffVal = parseFloat(d.diferencia || 0);
+            let tipoDiffText = '';
+            let colorDiff = 'var(--secondary)';
+            
+            if(diffVal > 0.001) {
+                colorDiff = 'var(--danger)';
+                tipoDiffText = '<br><span style="font-size:0.7rem;">(FALTANTE)</span>';
+            } else if(diffVal < -0.001) {
+                colorDiff = 'var(--success)';
+                tipoDiffText = '<br><span style="font-size:0.7rem;">(SOBRANTE)</span>';
             }
 
             html += `
@@ -1385,7 +1477,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                     <td style="font-weight: 600;">${d.formaPago}${boletasHtml}</td>
                     <td style="text-align: right; color: var(--primary); vertical-align:top;">Q ${parseFloat(d.montoCierre || 0).toFixed(2)}</td>
                     <td style="text-align: right; color: var(--success); vertical-align:top;">Q ${parseFloat(d.montoFisico || 0).toFixed(2)}</td>
-                    <td style="text-align: right; color: var(--danger); font-weight: bold; vertical-align:top;">Q ${parseFloat(d.diferencia || 0).toFixed(2)}</td>
+                    <td style="text-align: right; color: ${colorDiff}; font-weight: bold; vertical-align:top;">Q ${Math.abs(diffVal).toFixed(2)} ${tipoDiffText}</td>
                 </tr>
             `;
         });
@@ -1438,8 +1530,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                     opt.value = c.usuario; opt.textContent = c.usuario; turnoSel.appendChild(opt);
                 }
                 turnoSel.value = c.usuario;
-
-                // NUEVO: Cargar el responsable al editar
+                
                 const respSelect = document.getElementById('responsableSelect');
                 if (respSelect) respSelect.value = c.usuario;
             }

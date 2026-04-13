@@ -68,18 +68,10 @@ body {
     text-align: center; border: 1px solid rgba(255,255,255,0.15); position: relative; overflow: hidden;
 }
 
-@keyframes floatAndGlow {
-    0% { transform: translateY(0px) scale(1); filter: drop-shadow(0 5px 10px rgba(10, 37, 64, 0.08)); }
-    50% { transform: translateY(-5px) scale(1.02); filter: drop-shadow(0 15px 20px rgba(10, 37, 64, 0.15)); }
-    100% { transform: translateY(0px) scale(1); filter: drop-shadow(0 5px 10px rgba(10, 37, 64, 0.08)); }
-}
-
 .login-box img { 
     max-width: 220px !important; margin: 0 auto 1.5rem auto !important; display: block;
     background: transparent; padding: 0; border-radius: 0; border: none;
-    animation: floatAndGlow 4s ease-in-out infinite; transition: all 0.3s ease;
 }
-.login-box img:hover { transform: scale(1.03); }
 .login-box h2 { color: var(--primary); margin-bottom: 0.6rem; font-size: 1.6rem !important; font-weight: 800; letter-spacing: -0.5px; text-shadow: none; }
 .login-box p { color: var(--secondary); margin-bottom: 2.5rem; font-size: 0.95rem; font-weight: 600; }
 .login-box .form-group label { color: #f8fafc; font-weight: 600; letter-spacing: 0.3px; text-shadow: 0 1px 3px rgba(0,0,0,0.6); }
@@ -88,13 +80,29 @@ body {
 .login-box .modern-input::placeholder { color: rgba(255, 255, 255, 0.6); }
 .login-box .modern-input:focus { background: rgba(255, 255, 255, 0.15); border-color: #60a5fa; box-shadow: 0 0 0 4px rgba(96, 165, 250, 0.3); outline: none; }
 .login-box .btn-azul { background: var(--accent); margin-top: 25px; padding: 16px; font-size: 1.1rem; letter-spacing: 0.5px; justify-content: center; width: 100%; border-radius: 12px; box-shadow: 0 6px 20px rgba(0, 97, 255, 0.4); }
-.login-box .btn-azul:hover { background-color: var(--accent-hover); box-shadow: 0 10px 30px rgba(0, 97, 255, 0.6); transform: translateY(-2px); }
 
 #loginError { background: rgba(222, 53, 11, 0.05); color: #fecaca; padding: 12px; border-radius: 8px; border: 1px solid rgba(222, 53, 11, 0.2); margin-top: 25px; font-size: 0.9rem; font-weight: 600; }
 
 /* Estructura Principal */
 .main-wrapper { display: flex; height: 100vh; position: relative; }
-.sidebar { width: 270px; background: var(--primary); color: white; display: flex; flex-direction: column; position: relative; z-index: 100; box-shadow: 4px 0 15px rgba(0,0,0,0.03); }
+
+/* NUEVO: Controles Móviles */
+.mobile-header {
+    display: none;
+    background: var(--primary);
+    color: white;
+    padding: 15px 20px;
+    justify-content: space-between;
+    align-items: center;
+    box-shadow: var(--shadow-sm);
+    z-index: 101;
+}
+
+.mobile-header button {
+    background: transparent; border: none; color: white; font-size: 1.5rem; cursor: pointer;
+}
+
+.sidebar { width: 270px; background: var(--primary); color: white; display: flex; flex-direction: column; position: relative; z-index: 100; box-shadow: 4px 0 15px rgba(0,0,0,0.03); transition: transform 0.3s ease;}
 .sidebar-header { padding: 2.5rem 1.5rem; text-align: center; border-bottom: 1px solid rgba(255,255,255,0.06); position: relative; }
 .notification-bell { margin: 20px auto 0 auto; width: 42px; height: 42px; background: rgba(255, 255, 255, 0.04); border-radius: 50%; display: flex; align-items: center; justify-content: center; cursor: pointer; color: #adbdcc; font-size: 1.2rem; transition: all 0.2s ease; border: 1px solid rgba(255,255,255,0.08); position: relative; }
 .notification-bell:hover { background: rgba(255, 255, 255, 0.1); color: white; transform: scale(1.05); }
@@ -107,7 +115,7 @@ body {
 .nav-item.active { background: rgba(255, 255, 255, 0.08); color: white; font-weight: 600; box-shadow: inset 0 1px 1px rgba(255,255,255,0.05); }
 .sidebar-footer { padding: 1.5rem; text-align: center; font-size: 0.8rem; color: #8792a2; border-top: 1px solid rgba(255,255,255,0.06); background: rgba(0,0,0,0.1); }
 
-/* Notificaciones Dropdown Rediseñado */
+/* Notificaciones Dropdown */
 .notif-dropdown { display: none; position: absolute; top: 180px; left: 280px; width: 380px; background: white; border-radius: var(--radius-md); box-shadow: 0 15px 40px rgba(0,0,0,0.2); border: 1px solid var(--border); z-index: 1000; overflow: hidden; }
 .notif-header { background: var(--primary); color: white; padding: 15px 20px; font-weight: bold; display: flex; justify-content: space-between; align-items: center; font-size: 0.95rem; }
 .notif-body { list-style: none; padding: 0; margin: 0; max-height: 380px; overflow-y: auto; background: #fff;}
@@ -148,6 +156,11 @@ body {
 .btn-azul:hover { background-color: var(--accent-hover); transform: translateY(-1px); }
 .btn-rojo { background-color: #f1f5f9; color: #dc2626; border: 1px solid #fecaca; }
 .btn-verde { background-color: #f1f5f9; color: #059669; border: 1px solid #bbf7d0; }
+
+/* Botones Alternar PDF */
+.btn-pdf-toggle { background: transparent; border: 1px solid transparent; color: #94a3b8; padding: 6px 12px; border-radius: 4px; font-size: 0.85rem; cursor: pointer; font-weight: 600; transition: all 0.2s; }
+.btn-pdf-toggle:hover { color: white; }
+.btn-pdf-toggle.active { background: white; color: var(--primary); box-shadow: var(--shadow-sm); border-color: white;}
 
 .action-buttons-cell { display: flex; gap: 8px; align-items: center; justify-content: flex-start;}
 .btn-icon { border: none; width: 36px; height: 36px; border-radius: 8px; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 1rem; transition: all 0.2s ease; color: var(--secondary); background: #f1f5f9; border: 1px solid var(--border);}
@@ -195,32 +208,43 @@ body {
     display: flex;
     gap: 15px;
     align-items: stretch;
+    flex-wrap: wrap;
 }
 
+/* REDISEÑO 3: Grid para evitar aplastamiento */
 .cierre-control-card {
     flex: 3;
+    min-width: 300px;
     background: var(--surface);
     border-radius: 12px;
     border: 1px solid var(--border);
     box-shadow: var(--shadow-sm);
-    display: flex;
-    flex-wrap: wrap; /* NUEVO: Permite que los elementos bajen de línea si no caben */
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
     align-items: center;
     gap: 15px;
-    padding: 12px 20px;
+    padding: 15px 20px;
+}
+
+.cierre-control-card .card-title-section {
+    grid-column: 1 / -1;
+    border-bottom: 1px solid var(--border);
+    padding-bottom: 8px;
+    margin-bottom: 5px;
 }
 
 .cierre-chart-card {
     flex: 1;
+    min-width: 250px;
     background: var(--surface);
     border-radius: 12px;
     border: 1px solid var(--border);
     box-shadow: var(--shadow-sm);
     display: flex;
     align-items: center;
-    justify-content: flex-end;
+    justify-content: space-between;
     gap: 20px;
-    padding: 12px 20px;
+    padding: 15px 20px;
 }
 
 .cierre-table-card {
@@ -237,9 +261,7 @@ body {
 .compact-form-group {
     display: flex;
     flex-direction: column;
-    gap: 4px;
-    flex: 1;
-    min-width: 130px; /* NUEVO: Evita que los inputs se hagan demasiado pequeños */
+    gap: 6px;
 }
 
 .compact-form-group label {
@@ -259,10 +281,11 @@ body {
 .table-container-scroll {
     flex: 1;
     overflow-y: auto;
+    overflow-x: auto;
     background: var(--surface);
 }
 
-.compact-table { width: 100%; border-collapse: collapse; min-width: 600px; }
+.compact-table { width: 100%; border-collapse: collapse; min-width: 650px; }
 .compact-table th {
     position: sticky;
     top: 0;
@@ -300,7 +323,9 @@ body {
     border-top: 1px solid var(--border);
     display: flex;
     justify-content: space-between;
-    align-items: center;
+    align-items: flex-start;
+    flex-wrap: wrap;
+    gap: 15px;
 }
 
 .table-footer-actions .action-buttons-container {
@@ -339,3 +364,47 @@ body {
 /* Carpetas Repositorio */
 .repo-folder-card { transition: all 0.2s ease; }
 .repo-folder-card:hover { border-color: #cbd5e1; box-shadow: var(--shadow-md); }
+
+/* ==========================================================================
+   NUEVO: DISEÑO RESPONSIVE (MÓVILES Y TABLETS)
+   ========================================================================== */
+@media (max-width: 900px) {
+    body { overflow-y: auto; }
+    
+    .mobile-header { display: flex; }
+    
+    .main-wrapper { flex-direction: column; height: auto; }
+    
+    .sidebar { 
+        position: fixed; 
+        top: 60px; 
+        left: -300px; 
+        height: calc(100vh - 60px); 
+        width: 270px; 
+        z-index: 1000; 
+    }
+    
+    .sidebar.open { left: 0; }
+    
+    .content-container { overflow-y: visible; padding-top: 20px; }
+    
+    #tab-captura.active { height: auto; padding: 0 1rem 1.5rem 1rem; overflow: visible; }
+    
+    .main-header { padding: 1rem; flex-direction: column; align-items: flex-start; }
+    
+    .cierre-layout { flex-direction: column; }
+    
+    .cierre-left-col, .cierre-right-col { width: 100%; flex: none; overflow-y: visible; }
+    
+    .cierre-right-col { min-height: 500px; margin-top: 20px; }
+    
+    .cierre-control-card { grid-template-columns: 1fr; }
+    
+    .global-selectors { width: 100%; flex-direction: column; align-items: stretch; }
+    
+    .notif-dropdown { left: 10px; width: 90%; top: 120px; }
+    
+    #panelBoletas { left: 10px !important; top: 10px !important; width: 95%; max-width: 480px; }
+    
+    .tab-content { padding: 0 1rem; }
+}

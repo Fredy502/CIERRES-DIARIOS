@@ -44,6 +44,11 @@
     </div>
 </div>
 
+<div class="mobile-header">
+    <img src="logogrupo.jpeg" alt="GrupoDent" onerror="this.style.display='none'">
+    <button id="btnMobileMenu"><i class="fas fa-bars"></i></button>
+</div>
+
 <div class="main-wrapper hidden" id="appContent">
     <div class="notif-dropdown" id="notifDropdown">
         <div class="notif-header">
@@ -59,7 +64,7 @@
         </div>
     </div>
 
-    <nav class="sidebar">
+    <nav class="sidebar" id="sidebarMenu">
         <div class="sidebar-header">
             <img src="logogrupo.jpeg" alt="GrupoDent" onerror="this.style.display='none'" style="max-width: 90%; height: auto; margin: 0 auto; display: block; border-radius: 8px; background: white; padding: 5px;">
             <p id="displayUserLogueado" style="margin-top: 15px; font-size: 0.85rem; color: #bae6fd; font-weight: bold;"></p>
@@ -111,12 +116,12 @@
     <main class="content-container">
         <div id="tab-captura" class="tab-content active">
             <header class="main-header" id="headerCaptura" style="padding: 1.5rem 0 1rem 0;">
-                <div style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
+                <div style="display: flex; justify-content: space-between; align-items: center; width: 100%; flex-wrap: wrap; gap: 15px;">
                     <div class="header-title-area">
                         <h1 style="font-size: 1.8rem; margin:0;">Cierre Diario</h1>
                         <p style="margin: 4px 0 0; font-size: 0.9rem;">Gestión de flujo de caja y conciliación</p>
                     </div>
-                    <div class="global-selectors" style="padding: 8px 15px; border-radius: 10px;">
+                    <div class="global-selectors" style="padding: 8px 15px; border-radius: 10px; flex-wrap: wrap;">
                         <div class="selector-group">
                             <label style="font-size: 0.75rem;"><i class="fas fa-store"></i> SUCURSAL:</label>
                             <select id="sucursalSelect" class="modern-select compact-input" style="width: auto;">
@@ -144,7 +149,7 @@
 
                     <div class="cierre-header-row">
                         <div class="cierre-control-card">
-                            <div style="display:flex; align-items:center; gap: 12px; border-right: 1px solid var(--border); padding-right: 15px;">
+                            <div class="card-title-section" style="display:flex; align-items:center; gap: 12px;">
                                 <i class="fas fa-clipboard-check" style="font-size: 1.8rem; color: var(--accent);"></i>
                                 <div>
                                     <h3 style="margin:0; font-size:0.9rem; color: var(--primary);">Control Cierre</h3>
@@ -160,10 +165,10 @@
                                 <input type="text" id="responsableSelect" class="modern-input compact-input" readonly style="background-color: #f1f5f9; cursor: not-allowed; color: var(--primary); font-weight: 600;" placeholder="Automático">
                             </div>
                             <div class="compact-form-group">
-                                <label>Carga en el sistema:</label>
+                                <label>Carga sistema:</label>
                                 <input type="date" id="fechaRecibido" class="modern-input compact-input" placeholder="Automático">
                             </div>
-                            <div class="compact-form-group" style="flex: 2;">
+                            <div class="compact-form-group" style="grid-column: 1 / -1;">
                                 <label>Notas de Observación:</label>
                                 <input type="text" id="notas" class="modern-input compact-input" placeholder="Anomalías o aclaraciones...">
                             </div>
@@ -173,8 +178,8 @@
                             <div style="display: flex; flex-direction: column; gap: 4px; text-align: right;">
                                 <span style="font-size: 0.75rem; color: var(--secondary); font-weight: 700;">TOTAL SISTEMA</span>
                                 <strong id="displayTotalCierre" style="font-size: 1.25rem; color: var(--primary);">Q 0.00</strong>
-                                <span style="font-size: 0.75rem; color: var(--secondary); font-weight: 700; margin-top: 4px;">DIFERENCIA (FALTANTE / SOBRANTE)</span>
-                                <strong id="displayTotalDiff" style="font-size: 1.1rem; color: var(--danger);">Q 0.00</strong>
+                                <span style="font-size: 0.75rem; color: var(--secondary); font-weight: 700; margin-top: 4px;">DIFERENCIA TOTAL</span>
+                                <strong id="displayTotalDiff" style="font-size: 1.1rem; color: var(--secondary);">Q 0.00</strong>
                             </div>
                             <div style="width: 75px; height: 75px; position: relative;">
                                 <canvas id="cierreChart"></canvas>
@@ -205,13 +210,16 @@
                         </div>
 
                         <div class="table-footer-actions">
-                            <div style="display: flex; gap: 20px; font-weight: 700; color: var(--primary); font-size: 1.1rem; align-items: center;">
-                                <span><i class="fas fa-calculator" style="color:var(--secondary);"></i> TOTALES:</span>
-                                <span>Cierre: <span id="totalCierre" style="color:var(--primary);">0.00</span></span>
-                                <span>Físico: <span id="totalFisico" style="color:var(--success);">0.00</span></span>
-                                <span>Dif: <span id="totalDiferencia" style="color:var(--danger);">0.00</span></span>
+                            <div style="display: flex; flex-direction: column; gap: 5px;">
+                                <div style="display: flex; gap: 20px; font-weight: 700; color: var(--primary); font-size: 1.1rem; align-items: center; flex-wrap: wrap;">
+                                    <span><i class="fas fa-calculator" style="color:var(--secondary);"></i> TOTALES:</span>
+                                    <span>Cierre: <span id="totalCierre" style="color:var(--primary);">0.00</span></span>
+                                    <span>Físico: <span id="totalFisico" style="color:var(--success);">0.00</span></span>
+                                    <span>Dif: <span id="totalDiferencia" style="color:var(--secondary);">0.00</span></span>
+                                </div>
+                                <div id="discrepanciasList" style="margin-top: 5px; display: flex; flex-direction: column; gap: 2px;"></div>
                             </div>
-                            <div class="action-buttons-container">
+                            <div class="action-buttons-container" style="flex-wrap: wrap; justify-content: flex-end;">
                                 <button class="btn btn-verde" id="btnExportarExcel" style="padding: 10px 15px; font-size: 0.85rem;">
                                     <i class="fas fa-file-excel"></i> EXPORTAR
                                 </button>
@@ -224,13 +232,19 @@
                 </div>
                 
                 <div class="cierre-right-col" id="inlinePdfContainer">
-                    <div style="background: var(--primary); color: white; padding: 12px 15px; display: flex; justify-content: space-between; align-items: center;">
-                        <span style="font-weight: 600; font-size: 0.95rem;"><i class="fas fa-file-pdf" style="color:#ef4444;"></i> Documento de Soporte</span>
+                    <div style="background: var(--primary); color: white; padding: 12px 15px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
+                        <span style="font-weight: 600; font-size: 0.95rem;"><i class="fas fa-file-pdf" style="color:#ef4444;"></i> Visor de Documentos</span>
+                        
+                        <div id="pdfToggleContainer" class="hidden" style="display: flex; gap: 5px; background: rgba(255,255,255,0.1); border-radius: 6px; padding: 3px;">
+                            <button id="btnVerCierrePdf" class="btn-pdf-toggle active">Cierre Diario</button>
+                            <button id="btnVerDepositoPdf" class="btn-pdf-toggle">Depósito</button>
+                        </div>
+
                         <button class="btn-icon" style="background: rgba(255,255,255,0.1); color: white; border: none; width: 30px; height: 30px;" title="Expandir" onclick="document.getElementById('modalPreview').classList.remove('hidden'); document.getElementById('pdfPreviewFrame').src = document.getElementById('inlinePdfFrame').src;">
                             <i class="fas fa-expand"></i>
                         </button>
                     </div>
-                    <iframe id="inlinePdfFrame" src="" style="flex: 1; width: 100%; border: none; background: #334155;"></iframe>
+                    <iframe id="inlinePdfFrame" src="" style="flex: 1; width: 100%; border: none; background: #334155; min-height: 400px;"></iframe>
                 </div>
             </div>
         </div>
@@ -270,7 +284,7 @@
                         <option value="">Todos</option>
                     </select>
                 </div>
-                <div class="form-group" style="display: flex; gap: 5px;">
+                <div class="form-group" style="display: flex; gap: 5px; flex-wrap: wrap;">
                     <button class="btn btn-azul" id="btnAplicarFiltros" style="padding: 10px 15px;" title="Buscar en pantalla"><i class="fas fa-search"></i> Filtrar</button>
                     <button class="btn btn-rojo" id="btnLimpiarFiltrosBD" style="padding: 10px 15px; background-color: #64748b;" title="Limpiar Filtros"><i class="fas fa-eraser"></i></button>
                     <button class="btn btn-verde" id="btnExportarDB" style="padding: 10px 15px;"><i class="fas fa-file-excel"></i> Exportar BD</button>
@@ -278,13 +292,12 @@
                 </div>
             </div>
             <section class="card">
-                <div class="card-body">
-                    <div class="table-responsive">
+                <div class="card-body" style="padding: 0;">
+                    <div class="table-responsive" style="border: none; border-radius: 0;">
                         <table class="modern-table" id="tablaHistorial">
                             <thead>
                                 <tr>
                                     <th>Fecha Guardado</th>
-                                    <th>Fecha Recibido</th> 
                                     <th>Fecha Cierre</th>
                                     <th>Sucursal</th>
                                     <th>Usuario</th>
@@ -295,7 +308,7 @@
                                 </tr>
                             </thead>
                             <tbody>
-                                <tr><td colspan="9" style="text-align: center;">Cargando base de datos...</td></tr>
+                                <tr><td colspan="8" style="text-align: center;">Cargando base de datos...</td></tr>
                             </tbody>
                         </table>
                     </div>
@@ -420,8 +433,8 @@
                     <p>Seleccione, arrastre y previsualice su archivo PDF antes de enviarlo.</p>
                 </div>
             </header>
-            <div style="display: flex; gap: 20px; align-items: flex-start; max-width: 1200px; margin: 0 auto;">
-                <section class="card" style="flex: 1; max-width: 450px;">
+            <div style="display: flex; gap: 20px; align-items: flex-start; max-width: 1200px; margin: 0 auto; flex-wrap: wrap;">
+                <section class="card" style="flex: 1; min-width: 300px; max-width: 450px;">
                     <div class="card-body" style="padding: 30px;">
                         <div class="upload-container">
                             <div class="upload-dropzone" id="dropzonePdf" onclick="document.getElementById('archivoPdf').click()">
@@ -436,8 +449,16 @@
                                 <i class="fas fa-times-circle file-remove" id="btnRemoveFile" title="Quitar archivo"></i>
                             </div>
                         </div>
-                        
+
                         <div class="form-group" style="text-align: left; margin-top: 20px;">
+                            <label style="font-size: 0.95rem;"><i class="fas fa-file-alt"></i> Tipo de Documento:</label>
+                            <select id="tipoDocCarga" class="modern-select" style="padding: 12px; background-color: #f0f9ff; border-color: #bae6fd; color: #0369a1; font-weight: 600;">
+                                <option value="cierre">Cierre Diario Completo</option>
+                                <option value="deposito">Boleta de Depósito Efectivo (Atrasada)</option>
+                            </select>
+                        </div>
+                        
+                        <div class="form-group" style="text-align: left; margin-top: 15px;">
                             <label style="font-size: 0.95rem;"><i class="fas fa-user-clock"></i> Selecciona el Turno:</label>
                             <select id="turnoCargaPdf" class="modern-select" style="padding: 12px;"></select>
                         </div>
@@ -459,7 +480,7 @@
                     </div>
                 </section>
                 
-                <section class="card hidden" id="previewCargaCard" style="flex: 1.5; height: 650px; display: flex; flex-direction: column; overflow: hidden; border: 2px dashed var(--accent);">
+                <section class="card hidden" id="previewCargaCard" style="flex: 1.5; min-width: 300px; height: 650px; display: flex; flex-direction: column; overflow: hidden; border: 2px dashed var(--accent);">
                     <div style="background: var(--primary); padding: 10px 15px; color: white; display: flex; justify-content: space-between; align-items: center;">
                         <span style="font-weight: 600;"><i class="fas fa-eye"></i> Previsualización Ampliada</span>
                         <span style="font-size: 0.75rem; background: rgba(255,255,255,0.2); padding: 4px 8px; border-radius: 4px;">Modo Lectura con Zoom</span>
